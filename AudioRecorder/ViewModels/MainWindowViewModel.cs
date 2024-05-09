@@ -3,13 +3,13 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Reactive;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Management;
 using AudioRecorder.ViewModels;
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Linq;
+using AudioRecorder.Services;
+using YourAppName.Services;
 
 namespace AudioRecorder.ViewModels;
 
@@ -54,6 +54,9 @@ public class MainWindowViewModel : ViewModelBase
     private void ExecuteRecordCommand()
     {
         Debug.WriteLine("ExecuteRecordCommand!!!");
+
+        _activeRecordingProcesses = _mainProcesses.Where(p => p.IsChecked).Select(p => p.ID).ToList();
+        AudioCapture.StartCapture(_activeRecordingProcesses);
     }
     private void ExecuteSaveCommand()
     {
@@ -62,10 +65,12 @@ public class MainWindowViewModel : ViewModelBase
     private void ExecuteStopCommand()
     {
         Debug.WriteLine("ExecuteStopCommand!!!");
+
+        AudioCapture.StopCapture(_activeRecordingProcesses);
+        _activeRecordingProcesses.Clear();
     }
 
-    internal List<MainProcess> _mainProcesses = new();
-    public List<MainProcess> LinkedProcesses = new();
+    private List<MainProcess> _mainProcesses = new();
 
     public ObservableCollection<MainProcess> _filteredProcesses = new();
     public ObservableCollection<MainProcess> FilteredProcesses
@@ -86,41 +91,12 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private List<int> _activeRecordingProcesses = new();
 
-
-
-    // TODO: сделать автоматическое обновление списка при смене вкладки или на значок повесь
-    internal void InitializeMainProcesses()
+    private void InitializeMainProcesses()
     {
-        List<MainProcess> mainProcesses = new ();
-        Process[] processList = Process.GetProcesses();
-        /*
-        foreach (Process process in processList)
-        {
-            try
-            {
-                using (ManagementObject mo = new ManagementObject($"win32_process.handle='{process.Id}'"))
-                {
-                    mo.Get();
-                    string parentProcessId = mo["ParentProcessId"].ToString();
-                    if (string.IsNullOrEmpty(parentProcessId) || parentProcessId == "0")
-                    {
-                        mainProcesses.Add(new MainProcess(process.ProcessName, process.Id));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error retrieving data for process {process.ProcessName}: {ex.Message}");
-            }
-        }
-        */
-        foreach (Process process in processList)
-        {
-            mainProcesses.Add(new MainProcess(process.ProcessName, process.Id));
-        }
-
-        _mainProcesses = mainProcesses.ToList();
+        var windows = NativeMethods.GetAllWindows();
+        _mainProcesses = windows.Select(w => new MainProcess(w.Title, w.ProcessId, w.Icon)).ToList();
         FilterProcesses();
     }
 
@@ -138,7 +114,6 @@ public class MainWindowViewModel : ViewModelBase
                     )
                     select mainProcess
                 );
-
         }
         else
         {

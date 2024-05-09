@@ -1,16 +1,14 @@
-﻿using ReactiveUI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Avalonia.Media.Imaging;
+using ReactiveUI;
 
 namespace AudioRecorder.ViewModels;
 
 public class MainProcess : ViewModelBase
 {
-    private string _name;
+    private string _name = "";
     private int _id;
+    private bool _isChecked = false;
+    private Bitmap? _icon;
 
     public string Name
     {
@@ -30,9 +28,28 @@ public class MainProcess : ViewModelBase
         }
     }
 
-    public MainProcess(string name, int id) : base()
+    public bool IsChecked
     {
-        Name = name;
+        get => _isChecked;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isChecked, value);
+        }
+    }
+
+    public Bitmap? Icon
+    {
+        get => _icon;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _icon, value);
+        }
+    }
+
+    public MainProcess(string name, int id, Bitmap? icon = null) : base()
+    {
+        Name = string.IsNullOrEmpty(name) ? "Unknown" : name;
         ID = id;
+        _icon = icon;
     }
 }
