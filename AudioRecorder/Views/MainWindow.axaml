@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:controls="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+		xmlns:viewmodels="clr-namespace:AudioRecorder.ViewModels"
         xmlns:views="clr-namespace:AudioRecorder.Views"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="AudioRecorder.Views.MainWindow"
@@ -44,7 +45,7 @@
 						</TabItem.Header>
 						<Grid RowDefinitions="Auto *" Margin="7 0 7 0">
 							<controls:ColorZone Padding="0" Margin="8">
-								<TextBox Watermark="Поиск" Classes="solo" Theme="{StaticResource SoloTextBox}" Margin="0">
+								<TextBox Watermark="Поиск" Classes="solo" Theme="{StaticResource SoloTextBox}" Margin="0" Text="{Binding  Path=ProcessSearchText}">
 									<TextBox.InnerRightContent>
 										<Button Width="{Binding $self.Bounds.Height}" Classes="Flat" Foreground="{DynamicResource MaterialCardBackgroundBrush}">
 											<Svg Path="/Assets/search.svg" Width="20" Height="20"/>
@@ -52,10 +53,17 @@
 									</TextBox.InnerRightContent>
 								</TextBox>
 							</controls:ColorZone>
-							<ListBox Grid.Row="1"></ListBox>
+							<ListBox Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ItemsSource="{Binding Path=FilteredProcesses}">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<CheckBox Content="{Binding Path=Name}" Checked="ProcessCheckBox_Checked" Foreground="{DynamicResource MaterialBodyBrush}"
+												  HorizontalAlignment="Stretch"/>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
 						</Grid>
 					</TabItem>
-					<TabItem  Padding="0" ToolTip.Tip="Устройтва">
+					<TabItem  Padding="0" ToolTip.Tip="Устройства">
 						<TabItem.Header >
 							<Svg Path="/Assets/microphone.svg" Height="20"/>
 						</TabItem.Header>
