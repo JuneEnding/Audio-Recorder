@@ -19,13 +19,13 @@
 					<Button Height="32" Command="{Binding Path=PauseCommand}" ToolTip.Tip="Пауза" Classes="light" Margin="7 0 0 0">
 						<Svg Path="/Assets/pause.svg"/>
 					</Button>
-					<Button Height="32" Command="{Binding Path=PlayCommand}" ToolTip.Tip="Запись" Classes="light" Margin="7 0 0 0">
+					<Button Height="32" Command="{Binding Path=PlayCommand}" ToolTip.Tip="Играть" Classes="light" Margin="7 0 0 0">
 						<Svg Path="/Assets/play.svg"/>
 					</Button>
 					<Button Height="32" Command="{Binding Path=StopCommand}" ToolTip.Tip="Стоп" Classes="light" Margin="7 0 0 0">
 						<Svg Path="/Assets/stop.svg"/>
 					</Button>
-					<Button Height="32" Command="{Binding Path=RecordCommand}" ToolTip.Tip="Прослушать" Classes="light" Margin="17 0 0 0">
+					<Button Height="32" Command="{Binding Path=RecordCommand}" ToolTip.Tip="Записать" Classes="light" Margin="17 0 0 0">
 						<Svg Path="/Assets/record.svg"/>
 					</Button>	
 					<Button Height="32" Command="{Binding Path=SaveCommand}" ToolTip.Tip="Сохранить" Classes="light"  Margin="17 0 0 0">
@@ -37,15 +37,15 @@
 				</StackPanel>
 			<Rectangle Grid.Row="1" HorizontalAlignment="Stretch" Height="1" Fill="LightGray" Margin="0 7 0 0"/>
 
-			<Grid ColumnDefinitions="Auto Auto *" Grid.Row="2">
-				<TabControl Grid.Column="0" Padding="0" Theme="{StaticResource ScrollableTabControl}">
+			<Grid ColumnDefinitions="300 Auto *" Grid.Row="2">
+				<TabControl Grid.Column="0" Padding="0" Theme="{StaticResource ScrollableTabControl}" Background="{DynamicResource MaterialCardBackgroundBrush}">
 					<TabItem  Padding="0" ToolTip.Tip="Приложения">
 						<TabItem.Header >
 							<Svg Path="/Assets/application.svg" Height="20"/>
 						</TabItem.Header>
 						<Grid RowDefinitions="Auto *" Margin="7 0 7 0">
 							<controls:ColorZone Padding="0" Margin="8">
-								<TextBox Watermark="Поиск" Classes="solo" Theme="{StaticResource SoloTextBox}" Margin="0" Text="{Binding  Path=ProcessSearchText}">
+								<TextBox Watermark="Поиск" Classes="solo" Theme="{StaticResource SoloTextBox}" Margin="0" Text="{Binding Path=ProcessSearchText}">
 									<TextBox.InnerRightContent>
 										<Button Width="{Binding $self.Bounds.Height}" Classes="Flat" Foreground="{DynamicResource MaterialCardBackgroundBrush}">
 											<Svg Path="/Assets/search.svg" Width="20" Height="20"/>
@@ -56,8 +56,15 @@
 							<ListBox Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ItemsSource="{Binding Path=FilteredProcesses}">
 								<ListBox.ItemTemplate>
 									<DataTemplate>
-										<CheckBox Content="{Binding Path=Name}" Checked="ProcessCheckBox_Checked" Foreground="{DynamicResource MaterialBodyBrush}"
-												  HorizontalAlignment="Stretch"/>
+										<CheckBox ToolTip.Tip="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}" 
+												  Foreground="{DynamicResource MaterialBodyBrush}" HorizontalAlignment="Stretch">
+											<CheckBox.Content>
+												<StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
+													<Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="7 0"/>
+													<TextBlock Text="{Binding Path=Name}" VerticalAlignment="Stretch"/>
+												</StackPanel>
+											</CheckBox.Content>
+										</CheckBox>
 									</DataTemplate>
 								</ListBox.ItemTemplate>
 							</ListBox>
