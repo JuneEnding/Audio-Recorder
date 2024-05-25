@@ -53,7 +53,6 @@ private:
 
     HRESULT InitializeLoopbackCapture();
     HRESULT OnAudioSampleRequested();
-    HRESULT CreateMemFileForPID(DWORD pid);
     BOOL CreateServerPipe(DWORD pid);
     void WriteToPipe(const PBYTE data, DWORD dataSize);
     void ClosePipe();
@@ -83,9 +82,6 @@ private:
     DeviceState m_DeviceState{ DeviceState::Uninitialized };
     wil::unique_event_nothrow m_hActivateCompleted;
     wil::unique_event_nothrow m_hCaptureStopped;
-
-    HANDLE m_hMemFile = NULL;
-    LPVOID m_lpMemFileBase = NULL;
 
     HANDLE m_hPipe = NULL;
 

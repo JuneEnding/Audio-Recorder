@@ -42,14 +42,6 @@ HRESULT CLoopbackCapture::InitializeLoopbackCapture()
 
 CLoopbackCapture::~CLoopbackCapture()
 {
-    if (m_lpMemFileBase) {
-        UnmapViewOfFile(m_lpMemFileBase);
-        m_lpMemFileBase = NULL;
-    }
-    if (m_hMemFile) {
-        CloseHandle(m_hMemFile);
-        m_hMemFile = NULL;
-    }
     if (m_dwQueueID != 0)
     {
         MFUnlockWorkQueue(m_dwQueueID);
@@ -142,7 +134,6 @@ HRESULT CLoopbackCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperatio
 
 HRESULT CLoopbackCapture::StartCaptureAsync(DWORD processId, bool includeProcessTree)
 {
-    //RETURN_IF_FAILED(CreateMemFileForPID(processId));
     RETURN_IF_WIN32_BOOL_FALSE(CreateServerPipe(processId));
     RETURN_IF_FAILED(InitializeLoopbackCapture());
     RETURN_IF_FAILED(ActivateAudioInterface(processId, includeProcessTree));
@@ -325,39 +316,6 @@ HRESULT CLoopbackCapture::OnAudioSampleRequested()
 
         // Release buffer back
         m_AudioCaptureClient->ReleaseBuffer(FramesAvailable);
-    }
-
-    return S_OK;
-}
-
-HRESULT CLoopbackCapture::CreateMemFileForPID(DWORD pid) {
-    WCHAR memFileName[256];
-    swprintf_s(memFileName, _countof(memFileName), L"AudioDataBuffer_%d_%lld", pid, m_CaptureId);
-
-    m_hMemFile = CreateFileMapping(
-        INVALID_HANDLE_VALUE,
-        NULL,
-        PAGE_READWRITE,
-        0,
-        1024 * 1024,
-        memFileName
-    );
-
-    if (m_hMemFile == NULL) {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-
-    m_lpMemFileBase = MapViewOfFile(
-        m_hMemFile,
-        FILE_MAP_READ | FILE_MAP_WRITE,
-        0,
-        0,
-        0
-    );
-
-    if (m_lpMemFileBase == NULL) {
-        CloseHandle(m_hMemFile);
-        return HRESULT_FROM_WIN32(GetLastError());
     }
 
     return S_OK;
