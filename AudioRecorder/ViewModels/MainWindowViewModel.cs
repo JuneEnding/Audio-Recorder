@@ -7,8 +7,11 @@ using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Linq;
 using AudioRecorder.Services;
-using YourAppName.Services;
 using System.IO;
+using AudioRecorder.Models;
+using AudioSwitcher.AudioApi;
+using AudioSwitcher.AudioApi.CoreAudio;
+using Avalonia.Media.Imaging;
 
 namespace AudioRecorder.ViewModels;
 
@@ -26,10 +29,14 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         InitializeMainProcesses();
+        InitializeAudioDevices();
 
         this.WhenAnyValue(vm => vm.ProcessSearchText)
             .Throttle(TimeSpan.FromSeconds(1))
             .Subscribe(_ => FilterProcesses());
+        this.WhenAnyValue(vm => vm.AudioDevicesSearchText)
+            .Throttle(TimeSpan.FromSeconds(1))
+            .Subscribe(_ => FilterAudioDevices());
 
         ExportCommand = ReactiveCommand.Create(ExecuteExportCommand, Observable.Return(false));
         PauseCommand = ReactiveCommand.Create(ExecutePauseCommand, Observable.Return(false));
@@ -60,16 +67,18 @@ public class MainWindowViewModel : ViewModelBase
         Debug.WriteLine("ExecuteRecordCommand!!!");
 
         IsRecording = true;
-        _activeRecordingProcesses = _mainProcesses.Where(p => p.IsChecked).Select(p => p.ID).ToList();
-        var captureId = AudioCapture.StartCapture(_activeRecordingProcesses);
-        _processor.StartProcessing(_activeRecordingProcesses, captureId);
+        _activeRecordingProcesses = _mainProcesses.Where(p => p.IsChecked).Select(p => p.Id).ToList();
+        _activeRecordingAudioDevices = _audioDevices.Where(ad => ad.IsChecked)
+            .Select(ad => ad.ToNativeAudioDeviceInfo()).ToList();
+        var captureId = AudioCapture.StartCapture(_activeRecordingProcesses, _activeRecordingAudioDevices);
+        _processor.StartProcessing(_activeRecordingProcesses, _activeRecordingAudioDevices, captureId);
     }
     private void ExecuteSaveCommand()
     {
         Debug.WriteLine("ExecuteSaveCommand!!!");
 
-        string applicationName = "AudioRecorder";
-        string basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), applicationName);
+        const string applicationName = "AudioRecorder";
+        var basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), applicationName);
 
         if (!Directory.Exists(basePath)) 
         { 
@@ -84,8 +93,8 @@ public class MainWindowViewModel : ViewModelBase
     {
         Debug.WriteLine("ExecuteStopCommand!!!");
 
-        _processor.StopProcessing(_activeRecordingProcesses);
-        AudioCapture.StopCapture(_activeRecordingProcesses);
+        _processor.StopProcessing(_activeRecordingProcesses, _activeRecordingAudioDevices);
+        AudioCapture.StopCapture(_activeRecordingProcesses, _activeRecordingAudioDevices);
         _activeRecordingProcesses.Clear();
         IsRecording = false;
     }
@@ -98,32 +107,67 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     private List<MainProcess> _mainProcesses = new();
+    private List<AudioDeviceInfo> _audioDevices = new();
 
-    public ObservableCollection<MainProcess> _filteredProcesses = new();
+    private ObservableCollection<MainProcess> _filteredProcesses = new();
     public ObservableCollection<MainProcess> FilteredProcesses
     {
         get => _filteredProcesses;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _filteredProcesses, value);
-        }
-    }
-    private string _processSearchText = "";
-    public string ProcessSearchText
-        {
-        get => _processSearchText; 
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _processSearchText, value);
-        }
+        set => this.RaiseAndSetIfChanged(ref _filteredProcesses, value);
     }
 
-    private List<int> _activeRecordingProcesses = new();
+    private ObservableCollection<AudioDeviceInfo> _filteredAudioDevices = new();
+    public ObservableCollection<AudioDeviceInfo> FilteredAudioDevices
+    {
+        get => _filteredAudioDevices;
+        set => this.RaiseAndSetIfChanged(ref _filteredAudioDevices, value);
+    }
+
+    private string _processSearchText = "";
+    public string ProcessSearchText
+    {
+        get => _processSearchText;
+        set => this.RaiseAndSetIfChanged(ref _processSearchText, value);
+    }
+
+    private string _audioDevicesSearchText = "";
+    public string AudioDevicesSearchText
+    {
+        get => _audioDevicesSearchText;
+        set => this.RaiseAndSetIfChanged(ref _audioDevicesSearchText, value);
+    }
+
+    private List<uint> _activeRecordingProcesses = new();
+    private List<AudioCapture.NativeAudioDeviceInfo> _activeRecordingAudioDevices = new();
 
     private void InitializeMainProcesses()
     {
-        var windows = NativeMethods.GetAllWindows();
-        _mainProcesses = windows.Select(w => new MainProcess(w.Title, w.ProcessId, w.Icon)).ToList();
+        var audioController = new CoreAudioController();
+
+        _mainProcesses = new List<MainProcess>();
+        var addedProcessIds = new HashSet<int>();
+        foreach (var playbackDevice in audioController.GetPlaybackDevices().Where(pbd => pbd.State == DeviceState.Active))
+        {
+            foreach (var session in playbackDevice.SessionController.All())
+            {
+                var processId = session.ProcessId;
+                if (addedProcessIds.Contains(processId)) continue;
+
+                if (Process.GetProcessesByName("explorer").FirstOrDefault()?.Id == processId)
+                    continue;
+
+                var icon = ResourceHelper.GetBitmapFromIconPath(session.IconPath);
+                icon ??= NativeMethods.GetIconForProcess(processId);
+
+                var processName = session.IsSystemSession ? ResourceHelper.GetLocalizedStringFromResource(session.DisplayName) : session.DisplayName;
+
+                var process = new MainProcess(processName, (uint)processId, icon);
+                _mainProcesses.Add(process);
+
+                addedProcessIds.Add(processId);
+            }
+        }
+
         FilterProcesses();
     }
 
@@ -132,19 +176,40 @@ public class MainWindowViewModel : ViewModelBase
         var filter = ProcessSearchText.ToLower();
         if (!string.IsNullOrEmpty(filter))
         {
-            FilteredProcesses = new ObservableCollection<MainProcess> 
-                (
-                    from mainProcess in _mainProcesses
-                    where
-                    (
-                        mainProcess.Name.ToLower().Contains(filter)
-                    )
-                    select mainProcess
-                );
+            FilteredProcesses = new ObservableCollection<MainProcess>(_mainProcesses.Where(mainProcess =>
+                mainProcess.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)));
         }
         else
         {
             FilteredProcesses = new ObservableCollection<MainProcess>(_mainProcesses);
+        }
+    }
+
+    private void InitializeAudioDevices()
+    {
+        var audioDevices = AudioCapture.GetAudioDevicesArray();
+        _audioDevices = audioDevices.Select(ad => new AudioDeviceInfo(ad)).ToList();
+        FilterAudioDevices();
+    }
+
+    private void FilterAudioDevices()
+    {
+        var filter = AudioDevicesSearchText.ToLower();
+        if (!string.IsNullOrEmpty(filter))
+        {
+            FilteredAudioDevices = new ObservableCollection<AudioDeviceInfo>
+            (
+                from audioDeviceInfo in _audioDevices
+                where
+                (
+                    audioDeviceInfo.Name.ToLower().Contains(filter)
+                )
+                select audioDeviceInfo
+            );
+        }
+        else
+        {
+            FilteredAudioDevices = new ObservableCollection<AudioDeviceInfo>(_audioDevices);
         }
 
     }

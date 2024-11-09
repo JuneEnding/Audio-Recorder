@@ -24,7 +24,7 @@
     <ProjectGuid>{6e745655-513e-4713-b3ab-d6d3f62d7734}</ProjectGuid>
     <RootNamespace>ApplicationLoopback</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>ApplicationLoopbackLibrary</ProjectName>
+    <ProjectName>AudioCaptureLibrary</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -153,15 +153,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ApplicationLoopback.cpp" />
+    <ClCompile Include="AudioCaptureInterface.cpp" />
+    <ClCompile Include="AudioDeviceCapture.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="LoopbackCapture.cpp" />
+    <ClCompile Include="ApplicationLoopbackCapture.cpp" />
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AudioDeviceCapture.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="LoopbackCapture.h" />
+    <ClInclude Include="ApplicationLoopbackCapture.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>

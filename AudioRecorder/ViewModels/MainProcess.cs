@@ -6,7 +6,7 @@ namespace AudioRecorder.ViewModels;
 public class MainProcess : ViewModelBase
 {
     private string _name = "";
-    private int _id;
+    private uint _id;
     private bool _isChecked = false;
     private Bitmap? _icon;
 
@@ -19,7 +19,7 @@ public class MainProcess : ViewModelBase
         }
     }
 
-    public int ID
+    public uint Id
     {
         get => _id;
         set
@@ -46,10 +46,10 @@ public class MainProcess : ViewModelBase
         }
     }
 
-    public MainProcess(string name, int id, Bitmap? icon = null) : base()
+    public MainProcess(string name, uint id, Bitmap? icon = null) : base()
     {
         Name = string.IsNullOrEmpty(name) ? "Unknown" : name;
-        ID = id;
+        Id = id;
         _icon = icon;
     }
 }

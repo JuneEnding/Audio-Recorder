@@ -74,6 +74,32 @@
 						<TabItem.Header >
 							<Svg Path="/Assets/microphone.svg" Height="20"/>
 						</TabItem.Header>
+						<Grid RowDefinitions="Auto *" Margin="7 0 7 0">
+							<controls:ColorZone Padding="0" Margin="8">
+								<TextBox Watermark="Поиск" Classes="solo" Theme="{StaticResource SoloTextBox}" Margin="0" Text="{Binding Path=AudioDevicesSearchText}">
+									<TextBox.InnerRightContent>
+										<Button Width="{Binding $self.Bounds.Height}" Classes="Flat" Foreground="{DynamicResource MaterialCardBackgroundBrush}">
+											<Svg Path="/Assets/search.svg" Width="20" Height="20"/>
+										</Button>
+									</TextBox.InnerRightContent>
+								</TextBox>
+							</controls:ColorZone>
+							<ListBox Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ItemsSource="{Binding Path=FilteredAudioDevices}">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<CheckBox ToolTip.Tip="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
+												  Foreground="{DynamicResource MaterialBodyBrush}" HorizontalAlignment="Stretch">
+											<CheckBox.Content>
+												<StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
+													<!--Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="7 0"/-->
+													<TextBlock Text="{Binding Path=Name}" VerticalAlignment="Stretch"/>
+												</StackPanel>
+											</CheckBox.Content>
+										</CheckBox>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+						</Grid>
 					</TabItem>
 					<TabItem  Padding="0" ToolTip.Tip="Импорт">
 						<TabItem.Header >

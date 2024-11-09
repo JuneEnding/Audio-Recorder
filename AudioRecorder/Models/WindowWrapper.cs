@@ -7,12 +7,12 @@ namespace AudioRecorder.Models
     {
         internal IntPtr handle;
         internal string title = "";
-        internal int processId;
+        internal uint processId;
         internal Bitmap? icon;
 
         public IntPtr Handle { get => handle; }
         public string Title { get => title; }
-        public int ProcessId { get => processId; }
+        public uint ProcessId { get => processId; }
         public Bitmap? Icon { get => icon; }
     }
 }

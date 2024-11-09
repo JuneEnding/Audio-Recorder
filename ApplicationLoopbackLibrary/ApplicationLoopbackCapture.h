@@ -14,20 +14,20 @@
 
 using namespace Microsoft::WRL;
 
-class CLoopbackCapture :
+class ApplicationLoopbackCapture :
     public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
 {
 public:
-    CLoopbackCapture(long long captureId) :m_CaptureId(captureId) {}
-    ~CLoopbackCapture();
+    ApplicationLoopbackCapture(long long captureId) :m_CaptureId(captureId) {}
+    ~ApplicationLoopbackCapture();
 
     HRESULT StartCaptureAsync(DWORD processId, bool includeProcessTree);
     HRESULT StopCaptureAsync();
 
-    METHODASYNCCALLBACK(CLoopbackCapture, StartCapture, OnStartCapture);
-    METHODASYNCCALLBACK(CLoopbackCapture, StopCapture, OnStopCapture);
-    METHODASYNCCALLBACK(CLoopbackCapture, SampleReady, OnSampleReady);
-    METHODASYNCCALLBACK(CLoopbackCapture, FinishCapture, OnFinishCapture);
+    METHODASYNCCALLBACK(ApplicationLoopbackCapture, StartCapture, OnStartCapture);
+    METHODASYNCCALLBACK(ApplicationLoopbackCapture, StopCapture, OnStopCapture);
+    METHODASYNCCALLBACK(ApplicationLoopbackCapture, SampleReady, OnSampleReady);
+    METHODASYNCCALLBACK(ApplicationLoopbackCapture, FinishCapture, OnFinishCapture);
 
     // IActivateAudioInterfaceCompletionHandler
     STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation* operation);

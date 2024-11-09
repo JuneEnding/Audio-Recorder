@@ -3,11 +3,11 @@
 #include <iostream>
 #include <audioclientactivationparams.h>
 
-#include "LoopbackCapture.h"
+#include "ApplicationLoopbackCapture.h"
 
 #define BITS_PER_BYTE 8
 
-HRESULT CLoopbackCapture::SetDeviceStateErrorIfFailed(HRESULT hr)
+HRESULT ApplicationLoopbackCapture::SetDeviceStateErrorIfFailed(HRESULT hr)
 {
     if (FAILED(hr))
     {
@@ -16,7 +16,7 @@ HRESULT CLoopbackCapture::SetDeviceStateErrorIfFailed(HRESULT hr)
     return hr;
 }
 
-HRESULT CLoopbackCapture::InitializeLoopbackCapture()
+HRESULT ApplicationLoopbackCapture::InitializeLoopbackCapture()
 {
     // Create events for sample ready or user stop
     RETURN_IF_FAILED(m_SampleReadyEvent.create(wil::EventOptions::None));
@@ -40,7 +40,7 @@ HRESULT CLoopbackCapture::InitializeLoopbackCapture()
     return S_OK;
 }
 
-CLoopbackCapture::~CLoopbackCapture()
+ApplicationLoopbackCapture::~ApplicationLoopbackCapture()
 {
     if (m_dwQueueID != 0)
     {
@@ -48,7 +48,7 @@ CLoopbackCapture::~CLoopbackCapture()
     }
 }
 
-HRESULT CLoopbackCapture::ActivateAudioInterface(DWORD processId, bool includeProcessTree)
+HRESULT ApplicationLoopbackCapture::ActivateAudioInterface(DWORD processId, bool includeProcessTree)
 {
     return SetDeviceStateErrorIfFailed([&]() -> HRESULT
         {
@@ -79,7 +79,7 @@ HRESULT CLoopbackCapture::ActivateAudioInterface(DWORD processId, bool includePr
 //  Callback implementation of ActivateAudioInterfaceAsync function.  This will be called on MTA thread
 //  when results of the activation are available.
 //
-HRESULT CLoopbackCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperation* operation)
+HRESULT ApplicationLoopbackCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperation* operation)
 {
     m_activateResult = SetDeviceStateErrorIfFailed([&]()->HRESULT
         {
@@ -132,7 +132,7 @@ HRESULT CLoopbackCapture::ActivateCompleted(IActivateAudioInterfaceAsyncOperatio
     return S_OK;
 }
 
-HRESULT CLoopbackCapture::StartCaptureAsync(DWORD processId, bool includeProcessTree)
+HRESULT ApplicationLoopbackCapture::StartCaptureAsync(DWORD processId, bool includeProcessTree)
 {
     RETURN_IF_WIN32_BOOL_FALSE(CreateServerPipe(processId));
     RETURN_IF_FAILED(InitializeLoopbackCapture());
@@ -153,7 +153,7 @@ HRESULT CLoopbackCapture::StartCaptureAsync(DWORD processId, bool includeProcess
 //
 //  Callback method to start capture
 //
-HRESULT CLoopbackCapture::OnStartCapture(IMFAsyncResult* pResult)
+HRESULT ApplicationLoopbackCapture::OnStartCapture(IMFAsyncResult* pResult)
 {
     return SetDeviceStateErrorIfFailed([&]()->HRESULT
         {
@@ -173,7 +173,7 @@ HRESULT CLoopbackCapture::OnStartCapture(IMFAsyncResult* pResult)
 //
 //  Stop capture asynchronously via MF Work Item
 //
-HRESULT CLoopbackCapture::StopCaptureAsync()
+HRESULT ApplicationLoopbackCapture::StopCaptureAsync()
 {
     ClosePipe();
 
@@ -195,7 +195,7 @@ HRESULT CLoopbackCapture::StopCaptureAsync()
 //
 //  Callback method to stop capture
 //
-HRESULT CLoopbackCapture::OnStopCapture(IMFAsyncResult* pResult)
+HRESULT ApplicationLoopbackCapture::OnStopCapture(IMFAsyncResult* pResult)
 {
     // Stop capture by cancelling Work Item
     // Cancel the queued work item (if any)
@@ -216,7 +216,7 @@ HRESULT CLoopbackCapture::OnStopCapture(IMFAsyncResult* pResult)
 //
 //  Finalizes WAV file on a separate thread via MF Work Item
 //
-HRESULT CLoopbackCapture::FinishCaptureAsync()
+HRESULT ApplicationLoopbackCapture::FinishCaptureAsync()
 {
     // We should be flushing when this is called
     return MFPutWorkItem2(MFASYNC_CALLBACK_QUEUE_MULTITHREADED, 0, &m_xFinishCapture, nullptr);
@@ -228,7 +228,7 @@ HRESULT CLoopbackCapture::FinishCaptureAsync()
 //  Because of the asynchronous nature of the MF Work Queues and the DataWriter, there could still be
 //  a sample processing.
 //
-HRESULT CLoopbackCapture::OnFinishCapture(IMFAsyncResult* pResult)
+HRESULT ApplicationLoopbackCapture::OnFinishCapture(IMFAsyncResult* pResult)
 {
     m_DeviceState = DeviceState::Stopped;
 
@@ -242,7 +242,7 @@ HRESULT CLoopbackCapture::OnFinishCapture(IMFAsyncResult* pResult)
 //
 //  Callback method when ready to fill sample buffer
 //
-HRESULT CLoopbackCapture::OnSampleReady(IMFAsyncResult* pResult)
+HRESULT ApplicationLoopbackCapture::OnSampleReady(IMFAsyncResult* pResult)
 {
     if (SUCCEEDED(OnAudioSampleRequested()))
     {
@@ -266,7 +266,7 @@ HRESULT CLoopbackCapture::OnSampleReady(IMFAsyncResult* pResult)
 //
 //  Called when audio device fires m_SampleReadyEvent
 //
-HRESULT CLoopbackCapture::OnAudioSampleRequested()
+HRESULT ApplicationLoopbackCapture::OnAudioSampleRequested()
 {
     UINT32 FramesAvailable = 0;
     BYTE* Data = nullptr;
@@ -321,9 +321,9 @@ HRESULT CLoopbackCapture::OnAudioSampleRequested()
     return S_OK;
 }
 
-BOOL CLoopbackCapture::CreateServerPipe(DWORD pid) {
+BOOL ApplicationLoopbackCapture::CreateServerPipe(DWORD pid) {
     TCHAR pipeName[256];
-    swprintf_s(pipeName, _countof(pipeName), L"\\\\.\\pipe\\AudioDataPipe_%d_%lld", pid, m_CaptureId);
+    swprintf_s(pipeName, _countof(pipeName), L"\\\\.\\pipe\\AudioDataPipe_%lu_%lld", pid, m_CaptureId);
     m_hPipe = CreateNamedPipe(
         pipeName,
         PIPE_ACCESS_OUTBOUND,
@@ -338,13 +338,13 @@ BOOL CLoopbackCapture::CreateServerPipe(DWORD pid) {
     return m_hPipe != INVALID_HANDLE_VALUE;
 }
 
-void CLoopbackCapture::WriteToPipe(const PBYTE data, DWORD dataSize) {
+void ApplicationLoopbackCapture::WriteToPipe(const PBYTE data, DWORD dataSize) {
     if (m_hPipe != INVALID_HANDLE_VALUE) {
         DWORD written = 0;
         WriteFile(m_hPipe, data, dataSize, &written, NULL);
     }
 }
 
-void CLoopbackCapture::ClosePipe() {
+void ApplicationLoopbackCapture::ClosePipe() {
     CloseHandle(m_hPipe);
 }
