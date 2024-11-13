@@ -10,8 +10,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Avalonia.Desktop" Version="11.0.10" />
-		<PackageReference Include="Avalonia.Svg.Skia" Version="11.0.0.17" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.2.0" />
+		<PackageReference Include="Avalonia.Svg.Skia" Version="11.2.0" />
 		<PackageReference Include="System.Management" Version="8.0.0" />
 	</ItemGroup>
 
@@ -20,6 +20,6 @@
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="copy /Y &quot;$(SolutionDir)Libs\ApplicationLoopbackLibrary.dll&quot; &quot;$(OutDir)&quot;" />
+		<Exec Command="copy /Y &quot;$(SolutionDir)Libs\AudioCaptureLibrary.dll&quot; &quot;$(OutDir)&quot;" />
 	</Target>
 </Project>

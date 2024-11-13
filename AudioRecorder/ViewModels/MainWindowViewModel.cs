@@ -6,18 +6,17 @@ using System.Reactive;
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Linq;
-using AudioRecorder.Services;
 using System.IO;
-using AudioRecorder.Models;
+using AudioRecorder.Core.Data;
+using AudioRecorder.Core.Services;
 using AudioSwitcher.AudioApi;
 using AudioSwitcher.AudioApi.CoreAudio;
-using Avalonia.Media.Imaging;
 
 namespace AudioRecorder.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private AudioDataProcessor _processor = new();
+    private readonly AudioDataProcessor _processor = new();
 
     public ReactiveCommand<Unit, Unit> ExportCommand { get; }
     public ReactiveCommand<Unit, Unit> PauseCommand { get; }
@@ -70,7 +69,7 @@ public class MainWindowViewModel : ViewModelBase
         _activeRecordingProcesses = _mainProcesses.Where(p => p.IsChecked).Select(p => p.Id).ToList();
         _activeRecordingAudioDevices = _audioDevices.Where(ad => ad.IsChecked)
             .Select(ad => ad.ToNativeAudioDeviceInfo()).ToList();
-        var captureId = AudioCapture.StartCapture(_activeRecordingProcesses, _activeRecordingAudioDevices);
+        var captureId = AudioCaptureService.StartCapture(_activeRecordingProcesses, _activeRecordingAudioDevices);
         _processor.StartProcessing(_activeRecordingProcesses, _activeRecordingAudioDevices, captureId);
     }
     private void ExecuteSaveCommand()
@@ -94,7 +93,7 @@ public class MainWindowViewModel : ViewModelBase
         Debug.WriteLine("ExecuteStopCommand!!!");
 
         _processor.StopProcessing(_activeRecordingProcesses, _activeRecordingAudioDevices);
-        AudioCapture.StopCapture(_activeRecordingProcesses, _activeRecordingAudioDevices);
+        AudioCaptureService.StopCapture(_activeRecordingProcesses, _activeRecordingAudioDevices);
         _activeRecordingProcesses.Clear();
         IsRecording = false;
     }
@@ -106,11 +105,11 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _isRecording, value);
     }
 
-    private List<MainProcess> _mainProcesses = new();
+    private List<ProcessInfo> _mainProcesses = new();
     private List<AudioDeviceInfo> _audioDevices = new();
 
-    private ObservableCollection<MainProcess> _filteredProcesses = new();
-    public ObservableCollection<MainProcess> FilteredProcesses
+    private ObservableCollection<ProcessInfo> _filteredProcesses = new();
+    public ObservableCollection<ProcessInfo> FilteredProcesses
     {
         get => _filteredProcesses;
         set => this.RaiseAndSetIfChanged(ref _filteredProcesses, value);
@@ -138,13 +137,13 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     private List<uint> _activeRecordingProcesses = new();
-    private List<AudioCapture.NativeAudioDeviceInfo> _activeRecordingAudioDevices = new();
+    private List<NativeAudioDeviceInfo> _activeRecordingAudioDevices = new();
 
     private void InitializeMainProcesses()
     {
         var audioController = new CoreAudioController();
 
-        _mainProcesses = new List<MainProcess>();
+        _mainProcesses = new List<ProcessInfo>();
         var addedProcessIds = new HashSet<int>();
         foreach (var playbackDevice in audioController.GetPlaybackDevices().Where(pbd => pbd.State == DeviceState.Active))
         {
@@ -161,7 +160,7 @@ public class MainWindowViewModel : ViewModelBase
 
                 var processName = session.IsSystemSession ? ResourceHelper.GetLocalizedStringFromResource(session.DisplayName) : session.DisplayName;
 
-                var process = new MainProcess(processName, (uint)processId, icon);
+                var process = new ProcessInfo(processName, (uint)processId, icon);
                 _mainProcesses.Add(process);
 
                 addedProcessIds.Add(processId);
@@ -176,18 +175,18 @@ public class MainWindowViewModel : ViewModelBase
         var filter = ProcessSearchText.ToLower();
         if (!string.IsNullOrEmpty(filter))
         {
-            FilteredProcesses = new ObservableCollection<MainProcess>(_mainProcesses.Where(mainProcess =>
+            FilteredProcesses = new ObservableCollection<ProcessInfo>(_mainProcesses.Where(mainProcess =>
                 mainProcess.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)));
         }
         else
         {
-            FilteredProcesses = new ObservableCollection<MainProcess>(_mainProcesses);
+            FilteredProcesses = new ObservableCollection<ProcessInfo>(_mainProcesses);
         }
     }
 
     private void InitializeAudioDevices()
     {
-        var audioDevices = AudioCapture.GetAudioDevicesArray();
+        var audioDevices = AudioCaptureService.GetAudioDevicesArray();
         _audioDevices = audioDevices.Select(ad => new AudioDeviceInfo(ad)).ToList();
         FilterAudioDevices();
     }

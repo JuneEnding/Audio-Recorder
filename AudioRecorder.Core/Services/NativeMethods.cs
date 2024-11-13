@@ -1,14 +1,12 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using Bitmap = Avalonia.Media.Imaging.Bitmap;
 
-namespace AudioRecorder.Services;
+namespace AudioRecorder.Core.Services;
 
-internal static class NativeMethods
+public static class NativeMethods
 {
     private const string SndVolDllPath = @"%SystemRoot%\System32\SndVolSSO.dll";
     private const int IconIndex = 101;

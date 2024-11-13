@@ -1,0 +1,20 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AudioRecorderOverlay.App"
+             xmlns:sty="using:FluentAvalonia.Styling">
+
+	<Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <MergeResourceInclude Source="avares://AudioRecorderOverlay/Styles/BorderedMenuItemStyles.axaml"/>
+                <MergeResourceInclude Source="avares://AudioRecorderOverlay/Styles/BorderedMenuBarItemStyles.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+	</Application.Resources>
+
+    <Application.Styles>
+        <sty:FluentAvaloniaTheme PreferSystemTheme="True" PreferUserAccentColor="True"/>
+
+        <StyleInclude Source="avares://AudioRecorderOverlay/Styles/ButtonStyles.axaml"/>
+    </Application.Styles>
+</Application>
