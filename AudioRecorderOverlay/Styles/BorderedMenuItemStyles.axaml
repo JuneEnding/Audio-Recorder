@@ -41,7 +41,8 @@
 											Margin="{DynamicResource MenuIconPresenterMargin}" />
 
 							<Viewbox Name="PART_IconPresenter"
-									 Margin="16 0 12 0"
+									 Margin="12 0 8 0"
+
 									 Theme="{StaticResource FluentMenuItemIconTheme}"
 									 StretchDirection="DownOnly"
 									 HorizontalAlignment="Center"

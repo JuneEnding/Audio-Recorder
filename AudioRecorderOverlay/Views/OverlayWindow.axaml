@@ -25,7 +25,10 @@
 	</Design.DataContext>
 
     <Window.Resources>
-        <converters:PercentConverter x:Key="PercentConverter"/>
+        <converters:PercentConverter x:Key="PercentConverter" />
+		<converters:RecordingStateConverter x:Key="RecordingStateConverter" />
+		<converters:RecordingStateToColorConverter x:Key="RecordingStateToColorConverter" />
+		<converters:RecordingStateFontWeightConverter x:Key="RecordingStateFontWeightConverter" />
     </Window.Resources>
 
     <Panel Background="Transparent">
@@ -55,62 +58,86 @@
                                 </ItemsPanelTemplate>
                             </Menu.ItemsPanel>
 
-                            <MenuItem Grid.Column="0" Grid.RowSpan="2" Width="256" Height="256" Margin="0 0 32 0"
+                            <MenuItem Grid.Column="0" Grid.RowSpan="2" 
+                                      Height="{Binding Path=$parent[Menu].Bounds.Height}"
+                                      Width="{Binding Path=$parent[Menu].Bounds.Height}"
+                                      Margin="0 0 32 0"
                                       ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
                                       Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
                                 <MenuItem.Header>
                                     <StackPanel Orientation="Vertical" Spacing="16">
-                                        <TextBlock Text="Мгновенный повтор" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Мгновенный повтор" FontWeight="Black" FontSize="20" HorizontalAlignment="Center"/>
                                         <ui:SymbolIcon Symbol="RepeatAll"
                                                        HorizontalAlignment="Center"
-                                                       FontSize="80"/>
-                                        <TextBlock Text="State" FontWeight="Light" FontSize="20" HorizontalAlignment="Center"/>
+                                                       FontSize="100"
+                                                       Foreground="{Binding Path=InstantReplayState, Converter={StaticResource RecordingStateToColorConverter}}"/>
+                                        <TextBlock Text="{Binding Path=InstantReplayState, Converter={StaticResource RecordingStateConverter}}"
+                                                   FontWeight="{Binding Path=InstantReplayState, Converter={StaticResource RecordingStateFontWeightConverter}}"
+                                                   FontSize="20" HorizontalAlignment="Center"
+                                                   Foreground="{Binding Path=InstantReplayState, Converter={StaticResource RecordingStateToColorConverter}}"/>
                                     </StackPanel>
                                 </MenuItem.Header>
 
 								<MenuItem Header="Включить" Height="56" Width="{Binding Path=$parent[MenuItem].Bounds.Width}" FontSize="20"
                                           ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
-                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
+                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+                                          Command="{Binding Path=StartInstantReplayCommand}"
+                                          IsVisible="{Binding Path=!IsInstantReplayRunning}">
                                     <MenuItem.Icon>
                                         <ui:SymbolIcon Symbol="PlayFilled" FontSize="48"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
 								<MenuItem Header="Остановить" Height="56" Width="{Binding Path=$parent[MenuItem].Bounds.Width}" FontSize="20"
-                                                           Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
+                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+                                          Command="{Binding Path=StopInstantReplayCommand}"
+                                          IsVisible="{Binding Path=IsInstantReplayRunning}">
                                     <MenuItem.Icon>
                                         <ui:SymbolIcon Symbol="StopFilled" FontSize="48"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
 								<MenuItem Header="Сохранить" Height="56" Width="{Binding Path=$parent[MenuItem].Bounds.Width}" FontSize="20"
                                           ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
-                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
+                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+                                          Command="{Binding Path=SaveInstantReplayCommand}"
+                                          IsVisible="{Binding Path=IsInstantReplayRunning}">
                                     <MenuItem.Icon>
                                         <ui:SymbolIcon Symbol="SaveFilled" FontSize="48"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                             </MenuItem>
 
-                            <MenuItem Grid.Column="1" Grid.RowSpan="2"  Width="256" Height="256" Margin="0 0 32 0"
+                            <MenuItem Grid.Column="1" Grid.RowSpan="2"
+                                      Height="{Binding Path=$parent[Menu].Bounds.Height}"
+                                      Width="{Binding Path=$parent[Menu].Bounds.Height}"
+                                      Margin="0 0 32 0"
                                       ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
                                       Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
                                 <MenuItem.Header>
                                     <StackPanel Orientation="Vertical" Spacing="16">
-                                        <TextBlock Text="Запись" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="&#xE7C8;" FontFamily="{StaticResource SymbolThemeFontFamily}" FontSize="80" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="State" FontWeight="Light" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Запись" FontWeight="Black" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="&#xE7C8;" FontFamily="{StaticResource SymbolThemeFontFamily}" FontSize="100" HorizontalAlignment="Center"
+                                                   Foreground="{Binding Path=RecordingState, Converter={StaticResource RecordingStateToColorConverter}}"/>
+                                        <TextBlock Text="{Binding Path=RecordingState, Converter={StaticResource RecordingStateConverter}}"
+                                                   FontWeight="{Binding Path=RecordingState, Converter={StaticResource RecordingStateFontWeightConverter}}"
+                                                   FontSize="20" HorizontalAlignment="Center"
+                                                   Foreground="{Binding Path=RecordingState, Converter={StaticResource RecordingStateToColorConverter}}"/>
                                     </StackPanel>
                                 </MenuItem.Header>
 
 								<MenuItem Header="Пуск" Height="56" Width="{Binding Path=$parent[MenuItem].Bounds.Width}" FontSize="20"
                                           ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
-                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
+                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+                                          Command="{Binding Path=StartCaptureCommand}"
+                                          IsVisible="{Binding Path=!IsRecording}">
                                     <MenuItem.Icon>
                                         <ui:SymbolIcon Symbol="PlayFilled" FontSize="48"/>
                                     </MenuItem.Icon>
                                 </MenuItem>
                                 <MenuItem Header="Стоп" Height="56" Width="{Binding Path=$parent[MenuItem].Bounds.Width}" FontSize="20"
                                           ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
-                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
+                                          Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+                                          Command="{Binding Path=StopCaptureCommand}"
+                                          IsVisible="{Binding Path=IsRecording}">
                                     <MenuItem.Icon>
                                         <ui:SymbolIcon Symbol="StopFilled" FontSize="48"/>
                                     </MenuItem.Icon>
@@ -119,7 +146,8 @@
 
                             <MenuItem Grid.Column="2" Grid.Row="0" Margin="0 0 0 8" Width="{Binding Path=$self.Bounds.Height}"
                                       ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
-                                      Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
+                                      Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+                                      Command="{Binding Path=OpenLibraryFolderCommand}">
                                 <MenuItem.Header>
                                     <ui:SymbolIcon Symbol="FolderFilled" HorizontalAlignment="Center" FontSize="64"/>
 								</MenuItem.Header>
@@ -127,7 +155,8 @@
 
                             <MenuItem Grid.Column="2" Grid.Row="1" Margin="0 8 0 0" Width="{Binding Path=$self.Bounds.Height}"
                                       ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
-                                      Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}">
+                                      Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+                                      IsEnabled="False">
                                 <MenuItem.Header>
                                     <ui:SymbolIcon Symbol="SettingsFilled" HorizontalAlignment="Center" FontSize="64"/>
                                 </MenuItem.Header>
@@ -144,138 +173,96 @@
                     </Border>
                     
                     <Grid Grid.Row="1" ColumnDefinitions="* *" Margin="0 128 0 0">
-                        <Border Grid.Column="0" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="12" Padding="32" Margin="0 0 16 0">
-							<Grid RowDefinitions="Auto Auto *">
-                                <TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="Устройства ввода"/>
+						<Border Grid.Column="0" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="12"
+                                Margin="0 0 16 0">
+							<Border Padding="32" CornerRadius="10"
+                                    BorderBrush="{DynamicResource MenuBarItemBorderBrush}"
+                                    BorderThickness="4">
+								<Grid RowDefinitions="Auto Auto *">
+									<TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="Устройства ввода"/>
 
-                                <TextBox Grid.Row="1" HorizontalAlignment="Stretch"
-                                         Margin="0 18"
-                                         Watermark="Поиск"
-                                         Text="{Binding DevicesFilterText}">
-                                    <TextBox.InnerRightContent>
-                                        <ui:SymbolIcon Symbol="Find"
-                                                       FontSize="18"
-                                                       Margin="8 0" />
-                                    </TextBox.InnerRightContent>
-                                </TextBox>
+									<TextBox Grid.Row="1" HorizontalAlignment="Stretch"
+											 Margin="0 18"
+											 Watermark="Поиск"
+											 Text="{Binding DevicesFilterText}">
+										<TextBox.InnerRightContent>
+											<ui:SymbolIcon Symbol="Find"
+														   FontSize="18"
+														   Margin="8 0" />
+										</TextBox.InnerRightContent>
+									</TextBox>
 
-                                <ScrollViewer Grid.Row="2">
-                                    <ItemsControl ItemsSource="{Binding Path=FilteredAudioDevices}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Vertical"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-												<CheckBox ToolTip.Tip="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
-                                                          HorizontalAlignment="Stretch">
-                                                    <CheckBox.Content>
-                                                        <StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
-															<!--Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="8 0"/-->
-                                                            <TextBlock Text="{Binding Path=Name}" VerticalAlignment="Stretch"/>
-                                                        </StackPanel>
-                                                    </CheckBox.Content>
-                                                </CheckBox>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </Grid>
-                        </Border>
+									<ScrollViewer Grid.Row="2">
+										<ItemsControl ItemsSource="{Binding Path=FilteredAudioDevices}">
+											<ItemsControl.ItemsPanel>
+												<ItemsPanelTemplate>
+													<StackPanel Orientation="Vertical"/>
+												</ItemsPanelTemplate>
+											</ItemsControl.ItemsPanel>
+											<ItemsControl.ItemTemplate>
+												<DataTemplate>
+													<CheckBox ToolTip.Tip="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
+															  HorizontalAlignment="Stretch">
+														<CheckBox.Content>
+															<StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
+																<!--Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="8 0"/-->
+																<TextBlock Text="{Binding Path=Name}" VerticalAlignment="Stretch"/>
+															</StackPanel>
+														</CheckBox.Content>
+													</CheckBox>
+												</DataTemplate>
+											</ItemsControl.ItemTemplate>
+										</ItemsControl>
+									</ScrollViewer>
+								</Grid>
+							</Border>
+						</Border>
 
-                        <Border Grid.Column="1" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="12" Padding="32" Margin="16 0 0 0">
-                            <Grid RowDefinitions="Auto Auto *">
-                                <TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="Приложения"/>
+                        <Border Grid.Column="1" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="12"
+                                Margin="16 0 0 0">
+							<Border Padding="32" CornerRadius="10"
+                                    BorderBrush="{DynamicResource MenuBarItemBorderBrush}"
+                                    BorderThickness="4">
+								<Grid RowDefinitions="Auto Auto *">
+									<TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="Приложения"/>
 
-                                <TextBox Grid.Row="1" HorizontalAlignment="Stretch"
-                                         Margin="0 18"
-                                         Watermark="Поиск"
-                                         Text="{Binding ProcessesFilterText}">
-                                    <TextBox.InnerRightContent>
-                                        <ui:SymbolIcon Symbol="Find"
-                                                       FontSize="18"
-                                                       Margin="8 0" />
-                                    </TextBox.InnerRightContent>
-                                </TextBox>
+									<TextBox Grid.Row="1" HorizontalAlignment="Stretch"
+											 Margin="0 18"
+											 Watermark="Поиск"
+											 Text="{Binding ProcessesFilterText}">
+										<TextBox.InnerRightContent>
+											<ui:SymbolIcon Symbol="Find"
+														   FontSize="18"
+														   Margin="8 0" />
+										</TextBox.InnerRightContent>
+									</TextBox>
 
-                                <ScrollViewer Grid.Row="2">
-                                    <ItemsControl ItemsSource="{Binding Path=FilteredProcesses}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <StackPanel Orientation="Vertical"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <CheckBox ToolTip.Tip="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
-                                                          HorizontalAlignment="Stretch">
-                                                    <CheckBox.Content>
-                                                        <StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
-                                                            <Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="8 0"/>
-                                                            <TextBlock Text="{Binding Path=Name}" VerticalAlignment="Stretch"/>
-                                                        </StackPanel>
-                                                    </CheckBox.Content>
-                                                </CheckBox>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </Grid>
+									<ScrollViewer Grid.Row="2">
+										<ItemsControl ItemsSource="{Binding Path=FilteredProcesses}">
+											<ItemsControl.ItemsPanel>
+												<ItemsPanelTemplate>
+													<StackPanel Orientation="Vertical"/>
+												</ItemsPanelTemplate>
+											</ItemsControl.ItemsPanel>
+											<ItemsControl.ItemTemplate>
+												<DataTemplate>
+													<CheckBox ToolTip.Tip="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
+															  HorizontalAlignment="Stretch">
+														<CheckBox.Content>
+															<StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
+																<Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="8 0"/>
+																<TextBlock Text="{Binding Path=Name}" VerticalAlignment="Stretch"/>
+															</StackPanel>
+														</CheckBox.Content>
+													</CheckBox>
+												</DataTemplate>
+											</ItemsControl.ItemTemplate>
+										</ItemsControl>
+									</ScrollViewer>
+								</Grid>
+							</Border>
                         </Border>
                     </Grid>
-
-					<!--Border Grid.Row="1" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="12" Padding="32" Margin="0 128 0 0">
-						<Grid RowDefinitions="Auto *">
-                            <TextBox Grid.Row="0" HorizontalAlignment="Stretch"
-                                     Width="400"
-                                     Margin="0 12"
-                                     Watermark="Поиск"
-                                     Text="{Binding DevicesFilterText}">
-                                <TextBox.InnerRightContent>
-                                    <ui:SymbolIcon Symbol="Find"
-                                                   FontSize="18"
-                                                   Margin="8 0" />
-                                </TextBox.InnerRightContent>
-                            </TextBox>
-
-							<ScrollViewer Grid.Row="1">
-                                <StackPanel Orientation="Vertical">
-                                    <Expander Header="Устройства ввода" IsExpanded="True">
-                                        <ItemsControl ItemsSource="{Binding Path=FilteredAudioDevices}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Orientation="Vertical"/>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
-                                                              HorizontalAlignment="Stretch"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Expander>
-                                    <Expander Header="Приложения" IsExpanded="True">
-                                        <ItemsControl ItemsSource="{Binding Path=FilteredProcesses}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Orientation="Vertical"/>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox Content="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
-                                                              HorizontalAlignment="Stretch"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Expander>
-
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
-                    </Border-->
                 </Grid>
             </Panel>
         </ExperimentalAcrylicBorder>

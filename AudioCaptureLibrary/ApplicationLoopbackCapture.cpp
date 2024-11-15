@@ -4,6 +4,7 @@
 #include <audioclientactivationparams.h>
 
 #include "ApplicationLoopbackCapture.h"
+#include "Logger.h"
 
 #define BITS_PER_BYTE 8
 

@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 using AudioRecorder.Core.Data;
@@ -8,74 +7,80 @@ namespace AudioRecorder.Core.Services;
 
 public sealed class AudioDataProcessor
 {
-    private readonly ConcurrentDictionary<string, AudioData> _audioDataMap = new();
-    private long? _currentCaptureId;
-    private long? _lastCaptureId;
+    private const string PipeNameTemplate = "AudioDataPipe_{0}_{1}";
+    private const string FileNameTemplate = "{0}_{1}.wav";
+    private const int PipeTimeout = 2000;
 
-    public void StartProcessing(List<uint> processIds, List<NativeAudioDeviceInfo> audioDevices, long captureId)
+    private readonly List<AudioData> _audioDataList;
+
+    public long CaptureId { get; }
+
+    public AudioDataProcessor(long captureId, IEnumerable<ProcessInfo> processes, IEnumerable<NativeAudioDeviceInfo> audioDevices)
     {
-        _currentCaptureId = captureId;
-        var audioDataList = audioDevices
+        CaptureId = captureId;
+        _audioDataList = audioDevices
             .Select(ad => new AudioData(ad, AudioTargetType.AudioDevice) { CaptureId = captureId })
-            .Concat(processIds.Select(pid => new AudioData(AudioTargetType.Process) { PipeId = pid, CaptureId = captureId }));
+            .Concat(processes.Select(process => new AudioData(AudioTargetType.Process) { PipeId = process.Id, CaptureId = captureId, Name = process.Name})).ToList();
+    }
 
-        foreach (var audioData in audioDataList)
+    public bool Start()
+    {
+        var threadsToStart = new List<Thread>();
+
+        foreach (var audioData in _audioDataList)
         {
-            var pipeName = $"AudioDataPipe_{audioData.PipeId}_{_currentCaptureId}";
-            Debug.WriteLine($"PipeName: {pipeName}");
+            var pipeName = string.Format(PipeNameTemplate, audioData.PipeId, CaptureId);
+
             var client = new NamedPipeClientStream(".", pipeName, PipeDirection.In);
             audioData.PipeClient = client;
 
-            if (_audioDataMap.TryAdd(pipeName, audioData))
+            try
             {
-                try
-                {
-                    client.Connect(2000);
-                }
-                catch (TimeoutException)
-                {
-                    Console.WriteLine("Timeout while trying to connect.");
-                    return;
-                }
-
-                var thread = new Thread(() => ProcessAudio(audioData, pipeName));
-                audioData.ProcessingThread = thread;
-                thread.Start();
+                client.Connect(PipeTimeout);
             }
+            catch (TimeoutException)
+            {
+                Console.WriteLine("Timeout while trying to connect.");
+                return false;
+            }
+
+            var thread = new Thread(() => ProcessAudio(audioData));
+            audioData.ProcessingThread = thread;
+            threadsToStart.Add(thread);
         }
+
+        foreach (var thread in threadsToStart)
+            thread.Start();
+
+        return true;
     }
 
-    public void StopProcessing(List<uint> pids, List<NativeAudioDeviceInfo> audioDevices)
+    public void Stop()
     {
-        if (_currentCaptureId == null)
-            return;
-
-        var pipeIds = audioDevices.Select(ad => ad.PipeId).Concat(pids).ToList();
-
-        foreach (var pipeId in pipeIds)
+        Debug.WriteLine("Stop processing requested");
+        foreach (var audioData in _audioDataList)
         {
-            var pipeName = $"AudioDataPipe_{pipeId}_{_currentCaptureId}";
-            var audioData = _audioDataMap[pipeName];
-
             if (audioData.ProcessingThread != null && audioData.ProcessingThread.IsAlive)
             {
+                Debug.Write("Thead is alive");
+
                 audioData.CancelRequested = true;
                 audioData.ProcessingThread.Interrupt();
                 try
                 {
+                    Debug.WriteLine("Interrupt thread");
                     audioData.ProcessingThread.Join();
+                    Debug.WriteLine("Thread joined");
                 }
                 catch (ThreadInterruptedException) { }
             }
 
+            Debug.WriteLine("Closing pipe client");
             audioData.PipeClient?.Close();
         }
-
-        _lastCaptureId = _currentCaptureId;
-        _currentCaptureId = null;
     }
 
-    private async void ProcessAudio(AudioData audioData, string pipeName)
+    private async void ProcessAudio(AudioData audioData)
     {
         if (audioData.PipeClient == null)
             return;
@@ -83,17 +88,17 @@ public sealed class AudioDataProcessor
         using var reader = new BinaryReader(audioData.PipeClient);
         var buffer = new byte[4096];
 
+        audioData.Buffer = new List<byte>();
+
         try
         {
             while (audioData.PipeClient.IsConnected && !audioData.CancelRequested)
             {
-                var bytesRead = await ReadFromPipeWithTimeoutAsync(reader, buffer, 2000);
+                var bytesRead = await ReadFromPipeWithTimeoutAsync(reader, buffer, PipeTimeout);
                 if (bytesRead > 0)
                 {
                     var data = buffer.Take(bytesRead).ToArray();
                     audioData.Buffer.AddRange(data);
-                    double volume = CalculateVolumeLevel(data);
-                    UpdateVolumeDisplay(pipeName, volume);
                 }
             }
         }
@@ -118,73 +123,58 @@ public sealed class AudioDataProcessor
         return 0;
     }
 
-    public void SaveAudioData(AudioData audioData, string directoryName)
+    public void SaveAllAudioData(string directoryName)
     {
-        Directory.CreateDirectory(directoryName);
+        foreach (var entry in _audioDataList)
+        {
+            SaveAudioData(entry, directoryName);
+        }
+    }
 
-        string fileName = Path.Combine(directoryName, $"AudioData_{audioData.PipeId}_{audioData.CaptureId}.wav");
-        byte[] wavData = ConvertToWav(audioData.Buffer.ToArray(), sampleRate: (int)audioData.SampleRate, bitsPerSample: audioData.BitsPerSample, channels: audioData.Channels);
+    private void SaveAudioData(AudioData audioData, string directoryName)
+    {
+        if (!Directory.Exists(directoryName))
+            Directory.CreateDirectory(directoryName);
 
-        File.WriteAllBytes(fileName, wavData);
+        var fileName = string.Format(FileNameTemplate, audioData.Name, audioData.CaptureId);
+        var filePath = Path.Combine(directoryName,  fileName);
+        var wavData = ConvertToWav(audioData.Buffer.ToArray(), sampleRate: (int)audioData.SampleRate,
+            bitsPerSample: audioData.BitsPerSample, channels: audioData.Channels);
+
+        File.WriteAllBytes(filePath, wavData);
     }
 
     private byte[] ConvertToWav(byte[] rawAudioBytes, int sampleRate = 44100, int bitsPerSample = 16, int channels = 2)
     {
-        using (var memoryStream = new MemoryStream())
-        using (var writer = new BinaryWriter(memoryStream))
-        {
-            int blockAlign = channels * bitsPerSample / 8;
-            int averageBytesPerSecond = sampleRate * blockAlign;
+        using var memoryStream = new MemoryStream();
+        using var writer = new BinaryWriter(memoryStream);
+        var blockAlign = channels * bitsPerSample / 8;
+        var averageBytesPerSecond = sampleRate * blockAlign;
 
-            // RIFF header
-            writer.Write(Encoding.UTF8.GetBytes("RIFF"));
-            writer.Write(0); // placeholder for the RIFF chunk size
-            writer.Write(Encoding.UTF8.GetBytes("WAVE"));
+        // RIFF header
+        writer.Write(Encoding.UTF8.GetBytes("RIFF"));
+        writer.Write(0); // placeholder for the RIFF chunk size
+        writer.Write(Encoding.UTF8.GetBytes("WAVE"));
 
-            // fmt sub-chunk
-            writer.Write(Encoding.UTF8.GetBytes("fmt "));
-            writer.Write(16); // fmt chunk size (16 for PCM)
-            writer.Write((short)1); // audio format (1 = PCM)
-            writer.Write((short)channels);
-            writer.Write(sampleRate);
-            writer.Write(averageBytesPerSecond);
-            writer.Write((short)blockAlign);
-            writer.Write((short)bitsPerSample);
+        // fmt sub-chunk
+        writer.Write(Encoding.UTF8.GetBytes("fmt "));
+        writer.Write(16); // fmt chunk size (16 for PCM)
+        writer.Write((short)1); // audio format (1 = PCM)
+        writer.Write((short)channels);
+        writer.Write(sampleRate);
+        writer.Write(averageBytesPerSecond);
+        writer.Write((short)blockAlign);
+        writer.Write((short)bitsPerSample);
 
-            // data sub-chunk
-            writer.Write(Encoding.UTF8.GetBytes("data"));
-            writer.Write(rawAudioBytes.Length);
-            writer.Write(rawAudioBytes);
+        // data sub-chunk
+        writer.Write(Encoding.UTF8.GetBytes("data"));
+        writer.Write(rawAudioBytes.Length);
+        writer.Write(rawAudioBytes);
 
-            // Fill in the RIFF chunk size
-            memoryStream.Seek(4, SeekOrigin.Begin);
-            writer.Write((int)(memoryStream.Length - 8));
+        // Fill in the RIFF chunk size
+        memoryStream.Seek(4, SeekOrigin.Begin);
+        writer.Write((int)(memoryStream.Length - 8));
 
-            return memoryStream.ToArray();
-        }
-    }
-
-    public void SaveLastAudioData(string directoryName)
-    {
-        if (_lastCaptureId == null)
-            return;
-
-        foreach (var entry in _audioDataMap.Values)
-        {
-            if (entry.CaptureId == _lastCaptureId)
-            {
-                SaveAudioData(entry, directoryName);
-            }
-        }
-    }
-
-    private double CalculateVolumeLevel(byte[] audioData)
-    {
-        return Math.Sqrt(audioData.Select(x => x * x).Average());
-    }
-
-    private void UpdateVolumeDisplay(string pipeName, double volume)
-    {
-        Debug.WriteLine($"Pipe {pipeName}: Current volume level: {volume}");
+        return memoryStream.ToArray();
     }
 }

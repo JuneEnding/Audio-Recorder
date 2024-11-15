@@ -6,7 +6,7 @@
 #include <fstream>
 #include <thread>
 #include <limits>
-
+#include <stdexcept>
 
 AudioDeviceCapture::AudioDeviceCapture(long long captureId) : m_CaptureId(captureId) {}
 
@@ -91,7 +91,14 @@ HRESULT AudioDeviceCapture::OnAudioSampleRequested() {
                 pcmData[i] = static_cast<int32_t>(floatData[i] * (std::numeric_limits<int32_t>::max)());
             }
 
-            WriteToPipe(reinterpret_cast<const BYTE*>(pcmData.data()), pcmData.size() * sizeof(int32_t));
+            size_t dataSize = pcmData.size() * sizeof(int32_t);
+            if (dataSize > static_cast<size_t>((std::numeric_limits<int32_t>::max)())) {
+                throw std::overflow_error("Data size exceeds int32_t limits.");
+            }
+
+            int32_t dataSizeInt32 = static_cast<int32_t>(dataSize);
+
+            WriteToPipe(reinterpret_cast<const BYTE*>(pcmData.data()), dataSizeInt32);
         }
         else {
             WriteToPipe(pData, dataSize);

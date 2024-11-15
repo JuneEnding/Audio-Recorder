@@ -3,18 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34723.18
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioRecorder", "AudioRecorder\AudioRecorder.csproj", "{1797423F-893E-4AD8-ABC8-89924E542A48}"
-	ProjectSection(ProjectDependencies) = postProject
-		{6E745655-513E-4713-B3AB-D6D3F62D7734} = {6E745655-513E-4713-B3AB-D6D3F62D7734}
-	EndProjectSection
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioRecorder.Desktop", "AudioRecorder.Desktop\AudioRecorder.Desktop.csproj", "{6B3196F5-EB93-4569-B2B3-9AD74505223B}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AudioCaptureLibrary", "ApplicationLoopbackLibrary\ApplicationLoopback.vcxproj", "{6E745655-513E-4713-B3AB-D6D3F62D7734}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AudioCaptureLibrary", "AudioCaptureLibrary\AudioCaptureLibrary.vcxproj", "{6E745655-513E-4713-B3AB-D6D3F62D7734}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioRecorderOverlay", "AudioRecorderOverlay\AudioRecorderOverlay.csproj", "{5563C3A2-6AC3-4BA1-875F-138412F84AFD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioRecorder.Core", "AudioRecorder.Core\AudioRecorder.Core.csproj", "{F079115F-21BA-4345-B980-6D9B94BE768B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AudioRecorder.Core", "AudioRecorder.Core\AudioRecorder.Core.csproj", "{F079115F-21BA-4345-B980-6D9B94BE768B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,30 +19,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Debug|x64.Build.0 = Debug|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Debug|x86.Build.0 = Debug|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Release|x64.ActiveCfg = Release|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Release|x64.Build.0 = Release|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Release|x86.ActiveCfg = Release|Any CPU
-		{1797423F-893E-4AD8-ABC8-89924E542A48}.Release|x86.Build.0 = Release|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Debug|x64.Build.0 = Debug|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Debug|x86.Build.0 = Debug|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Release|x64.ActiveCfg = Release|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Release|x64.Build.0 = Release|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Release|x86.ActiveCfg = Release|Any CPU
-		{6B3196F5-EB93-4569-B2B3-9AD74505223B}.Release|x86.Build.0 = Release|Any CPU
 		{6E745655-513E-4713-B3AB-D6D3F62D7734}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{6E745655-513E-4713-B3AB-D6D3F62D7734}.Debug|Any CPU.Build.0 = Debug|x64
 		{6E745655-513E-4713-B3AB-D6D3F62D7734}.Debug|x64.ActiveCfg = Debug|x64

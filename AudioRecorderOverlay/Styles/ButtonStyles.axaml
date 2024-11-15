@@ -8,6 +8,7 @@
 
 	<Style Selector="Button">
         <Setter Property="BorderThickness" Value="4"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource MenuBarItemBorderBrush}"/>
 		<Style Selector="^:pointerover">
 			<Setter Property="BorderThickness" Value="4"/>
 			<Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>

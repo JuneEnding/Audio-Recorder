@@ -17,11 +17,11 @@
 #include <functiondiscoverykeys_devpkey.h>
 #include <string>
 #include <functional>
-#include <fstream>
 
 #include "pch.h"
 #include "ApplicationLoopbackCapture.h"
 #include "AudioDeviceCapture.h"
+#include "Logger.h"
 
 
 extern "C" {
@@ -37,11 +37,11 @@ extern "C" {
     __declspec(dllexport) NativeAudioDeviceInfo* GetAudioDevices(int *deviceCount);
     __declspec(dllexport) void FreeAudioDevicesArray(NativeAudioDeviceInfo* devices, int deviceCount);
     __declspec(dllexport) long long StartCapture(int *pids, int count, NativeAudioDeviceInfo *audioDevices, int deviceCount);
-    __declspec(dllexport) void StopCapture(int *pids, int count, NativeAudioDeviceInfo* audioDevices, int deviceCount);
+    __declspec(dllexport) void StopCapture(long long captureId);
 }
 
-std::map<DWORD, ComPtr<ApplicationLoopbackCapture>> activeCaptures;
-std::map<DWORD, std::unique_ptr<AudioDeviceCapture>> activeDeviceCaptures;
+std::map<long long, std::vector<ComPtr<ApplicationLoopbackCapture>>> activeAppCaptures;
+std::map<long long, std::vector<std::unique_ptr<AudioDeviceCapture>>> activeDeviceCaptures;
 
 DWORD GetDeviceIdHash(const std::wstring& deviceId) {
     DWORD hash = 2166136261u;
@@ -129,7 +129,7 @@ long long StartCapture(int* pids, int count, NativeAudioDeviceInfo* audioDevices
         auto capture = std::make_unique<AudioDeviceCapture>(captureId);
         HRESULT hr = capture->StartCaptureAsync(device.Id, device.PipeId);
         if (SUCCEEDED(hr)) {
-            activeDeviceCaptures[device.PipeId] = std::move(capture);
+            activeDeviceCaptures[captureId].push_back(std::move(capture));
         }
     }
 
@@ -139,29 +139,27 @@ long long StartCapture(int* pids, int count, NativeAudioDeviceInfo* audioDevices
         ComPtr<ApplicationLoopbackCapture> capture = Make<ApplicationLoopbackCapture>(captureId);
         HRESULT hr = capture->StartCaptureAsync(pid, true);
         if (SUCCEEDED(hr)) {
-            activeCaptures[pid] = capture;
+            activeAppCaptures[captureId].push_back(capture);
         }
     }
 
     return captureId;
 }
 
-void StopCapture(int* pids, int count, NativeAudioDeviceInfo* audioDevices, int deviceCount) {
-    for (int i = 0; i < deviceCount; ++i) {
-        const auto& device = audioDevices[i];
-        auto it = activeDeviceCaptures.find(device.PipeId);
-        if (it != activeDeviceCaptures.end()) {
-            it->second->StopCaptureAsync();
-            activeDeviceCaptures.erase(it);
+void StopCapture(long long captureId) {
+    auto deviceIt = activeDeviceCaptures.find(captureId);
+    if (deviceIt != activeDeviceCaptures.end()) {
+        for (auto& capture : deviceIt->second) {
+            capture->StopCaptureAsync();
         }
+        activeDeviceCaptures.erase(deviceIt);
     }
-
-    for (int i = 0; i < count; ++i) {
-        DWORD pid = pids[i];
-        auto it = activeCaptures.find(pid);
-        if (it != activeCaptures.end()) {
-            it->second->StopCaptureAsync();
-            activeCaptures.erase(it);
+    
+    auto appIt = activeAppCaptures.find(captureId);
+    if (appIt != activeAppCaptures.end()) {
+        for (auto& capture : appIt->second) {
+            capture->StopCaptureAsync();
         }
+        activeAppCaptures.erase(appIt);
     }
 }

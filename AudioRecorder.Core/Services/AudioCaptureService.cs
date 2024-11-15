@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using AudioRecorder.Core.Data;
 using AudioSwitcher.AudioApi.CoreAudio;
 using AudioSwitcher.AudioApi;
+using System.Management;
 
 namespace AudioRecorder.Core.Services;
 
@@ -12,18 +13,14 @@ public static class AudioCaptureService
     public static RangedObservableCollection<AudioDeviceInfo> AudioDevicesInfo { get; } = new();
     public static RangedObservableCollection<ProcessInfo> ProcessesInfo { get; } = new();
 
-    public static long StartCapture(List<uint> processIds, List<NativeAudioDeviceInfo> audioDevices)
+    public static long StartCapture(List<ProcessInfo> processes, List<NativeAudioDeviceInfo> audioDevices)
     {
-        foreach (var device in audioDevices)
-            Debug.WriteLine($"GetAudioDevices: ${device.PipeId}, {device.Id}, {device.Name}");
-
-        return StartCapture(processIds.ToArray(), processIds.Count, audioDevices.ToArray(), audioDevices.Count);
+        return StartCapture(processes.Select(process => process.Id).ToArray(), processes.Count, audioDevices.ToArray(),
+            audioDevices.Count);
     }
 
-    public static void StopCapture(List<uint> processIds, List<NativeAudioDeviceInfo> audioDevices)
-    {
-        StopCapture(processIds.ToArray(), processIds.Count, audioDevices.ToArray(), audioDevices.Count);
-    }
+    [DllImport("AudioCaptureLibrary.dll", CharSet = CharSet.Unicode)]
+    public static extern void StopCapture(long captureId);
 
     public static async Task InitializeAudioDevicesAsync()
     {
@@ -92,9 +89,6 @@ public static class AudioCaptureService
 
     [DllImport("AudioCaptureLibrary.dll", CharSet = CharSet.Unicode)]
     private static extern long StartCapture([In] uint[] processIds, int pidCount, [In] NativeAudioDeviceInfo[] audioDevices, int deviceCount);
-
-    [DllImport("AudioCaptureLibrary.dll", CharSet = CharSet.Unicode)]
-    private static extern void StopCapture([In] uint[] processIds, int pidCount, [In] NativeAudioDeviceInfo[] audioDevices, int deviceCount);
 
     [DllImport("AudioCaptureLibrary.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetAudioDevices(out int deviceCount);

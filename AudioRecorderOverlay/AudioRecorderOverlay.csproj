@@ -36,4 +36,8 @@
 		</Compile>
 	</ItemGroup>
 
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="copy /Y &quot;$(SolutionDir)Libs\AudioCaptureLibrary.dll&quot; &quot;$(OutDir)&quot;" />
+	</Target>
+
 </Project>
