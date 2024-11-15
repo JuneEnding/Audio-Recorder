@@ -67,7 +67,7 @@
                                 <MenuItem.Header>
                                     <StackPanel Orientation="Vertical" Spacing="16">
                                         <TextBlock Text="Мгновенный повтор" FontWeight="Black" FontSize="20" HorizontalAlignment="Center"/>
-                                        <ui:SymbolIcon Symbol="RepeatAll"
+                                        <ui:SymbolIcon Symbol="RotateCounterClockwise"
                                                        HorizontalAlignment="Center"
                                                        FontSize="100"
                                                        Foreground="{Binding Path=InstantReplayState, Converter={StaticResource RecordingStateToColorConverter}}"/>
@@ -156,7 +156,7 @@
                             <MenuItem Grid.Column="2" Grid.Row="1" Margin="0 8 0 0" Width="{Binding Path=$self.Bounds.Height}"
                                       ItemContainerTheme="{StaticResource BorderedMenuItemStyle}"
                                       Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
-                                      IsEnabled="False">
+                                      Command="{Binding Path=OpenSettingsDialogCommand}">
                                 <MenuItem.Header>
                                     <ui:SymbolIcon Symbol="SettingsFilled" HorizontalAlignment="Center" FontSize="64"/>
                                 </MenuItem.Header>
@@ -165,7 +165,8 @@
 
                     <Border Grid.Row="0" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="0"
                             VerticalAlignment="Top" HorizontalAlignment="Right">
-                        <Button Content="&#xE8BB;" FontFamily="{StaticResource SymbolThemeFontFamily}"
+                        <Button Classes="MenuButton" Content="&#xE8BB;"
+                                FontFamily="{StaticResource SymbolThemeFontFamily}"
                                 Height="{Binding Path=$self.Bounds.Width}"
                                 CornerRadius="0" Theme="{StaticResource TransparentButton}"
                                 FontSize="40"

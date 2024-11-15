@@ -11,6 +11,7 @@ using Avalonia.Media.Immutable;
 using Avalonia.Styling;
 using FluentAvalonia.UI.Media;
 using System.Linq;
+using AudioRecorderOverlay.ViewModels;
 
 namespace AudioRecorderOverlay.Views;
 
@@ -162,33 +163,36 @@ public sealed partial class OverlayWindow : AppWindow
 
     private void OverlayWindowKeyHandler(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape || e.Key == Key.LWin || e.Key == Key.RWin)
+        if (DataContext is OverlayWindowViewModel viewModel && !viewModel.IsContentDialogOpened)
         {
-            HideOverlay(sender, e);
-            e.Handled = true;
-        }
-
-        if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt)
-        {
-            if (!_isMenuFocused)
+            if (e.Key == Key.Escape || e.Key == Key.LWin || e.Key == Key.RWin)
             {
-                _previousFocusedElement = FocusManager?.GetFocusedElement();
+                HideOverlay(sender, e);
+                e.Handled = true;
+            }
 
-                if (MainMenu.Items.OfType<MenuItem>().FirstOrDefault() is MenuItem firstItem)
+            if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt)
+            {
+                if (!_isMenuFocused)
                 {
-                    firstItem.IsSubMenuOpen = true;
-                    firstItem.Focus();
-                    _isMenuFocused = true;
-                }
-            }
-            else
-            {
-                _previousFocusedElement?.Focus();
-                _previousFocusedElement = null;
-                _isMenuFocused = false;
-            }
+                    _previousFocusedElement = FocusManager?.GetFocusedElement();
 
-            e.Handled = true;
+                    if (MainMenu.Items.OfType<MenuItem>().FirstOrDefault() is MenuItem firstItem)
+                    {
+                        firstItem.IsSubMenuOpen = true;
+                        firstItem.Focus();
+                        _isMenuFocused = true;
+                    }
+                }
+                else
+                {
+                    _previousFocusedElement?.Focus();
+                    _previousFocusedElement = null;
+                    _isMenuFocused = false;
+                }
+
+                e.Handled = true;
+            }
         }
     }
 

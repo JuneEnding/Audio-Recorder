@@ -6,7 +6,7 @@
 		</Border>
 	</Design.PreviewWith>
 
-	<Style Selector="Button">
+	<Style Selector="Button.MenuButton">
         <Setter Property="BorderThickness" Value="4"/>
 		<Setter Property="BorderBrush" Value="{DynamicResource MenuBarItemBorderBrush}"/>
 		<Style Selector="^:pointerover">

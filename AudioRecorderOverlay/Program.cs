@@ -2,6 +2,7 @@
 using Avalonia.ReactiveUI;
 using System;
 using AudioRecorder.Core.Services;
+using AudioRecorderOverlay.ViewModels;
 
 namespace AudioRecorderOverlay
 {

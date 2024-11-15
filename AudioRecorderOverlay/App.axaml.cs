@@ -71,6 +71,8 @@ namespace AudioRecorderOverlay
         {
             BindingPlugins.DataValidators.RemoveAt(0);
 
+            SettingsDialogViewModel.Instance.LoadSettings();
+
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 desktop.Startup += OnStartup;

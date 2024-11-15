@@ -11,16 +11,25 @@ public sealed class AudioDataProcessor
     private const string FileNameTemplate = "{0}_{1}.wav";
     private const int PipeTimeout = 2000;
 
+    private readonly bool _isInstantReplayMode;
+    private readonly int _instantReplayDuration;
     private readonly List<AudioData> _audioDataList;
 
     public long CaptureId { get; }
 
-    public AudioDataProcessor(long captureId, IEnumerable<ProcessInfo> processes, IEnumerable<NativeAudioDeviceInfo> audioDevices)
+    public AudioDataProcessor(long captureId, IEnumerable<ProcessInfo> processes,
+        IEnumerable<NativeAudioDeviceInfo> audioDevices, bool isInstantReplayMode = false,
+        int instantReplayDuration = 0)
     {
         CaptureId = captureId;
         _audioDataList = audioDevices
-            .Select(ad => new AudioData(ad, AudioTargetType.AudioDevice) { CaptureId = captureId })
-            .Concat(processes.Select(process => new AudioData(AudioTargetType.Process) { PipeId = process.Id, CaptureId = captureId, Name = process.Name})).ToList();
+            .Select(ad => new AudioData(ad, captureId, AudioTargetType.AudioDevice, isInstantReplayMode,
+                instantReplayDuration))
+            .Concat(processes.Select(process =>
+                new AudioData(captureId, AudioTargetType.Process, isInstantReplayMode, instantReplayDuration)
+                    { PipeId = process.Id, Name = process.Name })).ToList();
+        _isInstantReplayMode = isInstantReplayMode;
+        _instantReplayDuration = instantReplayDuration;
     }
 
     public bool Start()
@@ -40,7 +49,7 @@ public sealed class AudioDataProcessor
             }
             catch (TimeoutException)
             {
-                Console.WriteLine("Timeout while trying to connect.");
+                Logger.LogError("Timeout while trying to connect.");
                 return false;
             }
 
@@ -57,25 +66,19 @@ public sealed class AudioDataProcessor
 
     public void Stop()
     {
-        Debug.WriteLine("Stop processing requested");
         foreach (var audioData in _audioDataList)
         {
             if (audioData.ProcessingThread != null && audioData.ProcessingThread.IsAlive)
             {
-                Debug.Write("Thead is alive");
-
                 audioData.CancelRequested = true;
                 audioData.ProcessingThread.Interrupt();
                 try
                 {
-                    Debug.WriteLine("Interrupt thread");
                     audioData.ProcessingThread.Join();
-                    Debug.WriteLine("Thread joined");
                 }
                 catch (ThreadInterruptedException) { }
             }
 
-            Debug.WriteLine("Closing pipe client");
             audioData.PipeClient?.Close();
         }
     }
@@ -88,7 +91,7 @@ public sealed class AudioDataProcessor
         using var reader = new BinaryReader(audioData.PipeClient);
         var buffer = new byte[4096];
 
-        audioData.Buffer = new List<byte>();
+        audioData.ClearBuffer();
 
         try
         {
@@ -98,17 +101,17 @@ public sealed class AudioDataProcessor
                 if (bytesRead > 0)
                 {
                     var data = buffer.Take(bytesRead).ToArray();
-                    audioData.Buffer.AddRange(data);
+                    audioData.AddData(data);
                 }
             }
         }
         catch (EndOfStreamException)
         {
-            Console.WriteLine("Stream closed.");
+            Logger.LogError("Stream closed.");
         }
         catch (IOException ex)
         {
-            Console.WriteLine($"An IO exception occured: {ex}");
+            Logger.LogError($"An IO exception occured: {ex}");
         }
     }
 
@@ -138,7 +141,7 @@ public sealed class AudioDataProcessor
 
         var fileName = string.Format(FileNameTemplate, audioData.Name, audioData.CaptureId);
         var filePath = Path.Combine(directoryName,  fileName);
-        var wavData = ConvertToWav(audioData.Buffer.ToArray(), sampleRate: (int)audioData.SampleRate,
+        var wavData = ConvertToWav(audioData.Buffer, sampleRate: (int)audioData.SampleRate,
             bitsPerSample: audioData.BitsPerSample, channels: audioData.Channels);
 
         File.WriteAllBytes(filePath, wavData);
