@@ -191,7 +191,13 @@ public sealed class OverlayWindowViewModel : ReactiveObject
             var captureId = AudioCaptureService.StartCapture(activeRecordingProcesses, activeRecordingAudioDevices);
             _activeInstantReplayProcessor =
                 new AudioDataProcessor(captureId, activeRecordingProcesses, activeRecordingAudioDevices,
-                    isInstantReplayMode: true, instantReplayDuration: 5);
+                    isInstantReplayMode: true,
+                    instantReplayDuration: SettingsDialogViewModel.Instance.InstantReplayDurationSeconds);
+
+            SettingsDialogViewModel.Instance
+                .WhenAnyValue(vm => vm.InstantReplayDurationSeconds)
+                .Subscribe(newDuration => _activeInstantReplayProcessor.SetAllInstantReplayDuration(newDuration));
+
             var ok = _activeInstantReplayProcessor.Start();
             if (!ok)
                 Dispatcher.UIThread.Post(() => _ = StopInstantReplayAsync());

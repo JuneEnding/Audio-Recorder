@@ -83,6 +83,15 @@ public sealed class AudioDataProcessor
         }
     }
 
+    public void SetAllInstantReplayDuration(int durationSeconds)
+    {
+        if (!_isInstantReplayMode)
+            return;
+
+        foreach (var audioData in _audioDataList)
+            audioData.SetInstantReplayBufferSize(durationSeconds);
+    }
+
     private async void ProcessAudio(AudioData audioData)
     {
         if (audioData.PipeClient == null)
