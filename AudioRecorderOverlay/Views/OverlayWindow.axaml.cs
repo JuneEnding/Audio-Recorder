@@ -163,7 +163,7 @@ public sealed partial class OverlayWindow : AppWindow
 
     private void OverlayWindowKeyHandler(object? sender, KeyEventArgs e)
     {
-        if (DataContext is OverlayWindowViewModel viewModel && !viewModel.IsContentDialogOpened)
+        if (DataContext is OverlayWindowViewModel viewModel && !viewModel.IsSettingsDialogOpened)
         {
             if (e.Key == Key.Escape || e.Key == Key.LWin || e.Key == Key.RWin)
             {

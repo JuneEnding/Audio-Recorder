@@ -29,7 +29,7 @@ public static class HotkeyManager
             // Alt + Shift + S
             RegisterHotKey(source.Handle, HotkeyId, 0x0001 | 0x0004, (uint)KeyInterop.VirtualKeyFromKey(Key.S));
 
-            while (source.ProcessMessages())
+            while (Win32HotkeyWindow.ProcessMessages())
             {
 
             }
@@ -50,16 +50,14 @@ public static class HotkeyManager
 
     private class Win32HotkeyWindow : IDisposable
     {
-        private readonly IntPtr _hwnd;
-
-        public IntPtr Handle => _hwnd;
+        public IntPtr Handle { get; }
 
         public Win32HotkeyWindow()
         {
-            _hwnd = CreateMessageWindow();
+            Handle = CreateMessageWindow();
         }
 
-        public bool ProcessMessages()
+        public static bool ProcessMessages()
         {
             var msg = new MSG();
             while (GetMessage(ref msg, IntPtr.Zero, 0, 0))
@@ -76,7 +74,7 @@ public static class HotkeyManager
 
         public void Dispose()
         {
-            DestroyWindow(_hwnd);
+            DestroyWindow(Handle);
         }
 
         [DllImport("user32.dll")]

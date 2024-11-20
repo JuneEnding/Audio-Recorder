@@ -1,16 +1,19 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace AudioRecorder.Core.Services;
 
-public sealed class LoggerInterop
+public static class LoggerInterop
 {
-    [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.Cdecl)]
-    public static extern void set_logger(IntPtr logger);
+    private static Logger.LogDelegate? _logDelegate;
 
     public static void InitializeCppLogger()
     {
-        var logDelegate = new Logger.LogDelegate(Logger.LogFromCpp);
-        var logPtr = Marshal.GetFunctionPointerForDelegate(logDelegate);
+        _logDelegate = Logger.LogFromCpp;
+        var logPtr = Marshal.GetFunctionPointerForDelegate(_logDelegate);
         set_logger(logPtr);
     }
+
+    [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.Cdecl)]
+    private static extern void set_logger(IntPtr logger);
 }

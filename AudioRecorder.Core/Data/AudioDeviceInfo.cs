@@ -7,7 +7,9 @@ namespace AudioRecorder.Core.Data;
 public struct NativeAudioDeviceInfo
 {
     public uint PipeId;
+    [MarshalAs(UnmanagedType.BStr)]
     public string Id;
+    [MarshalAs(UnmanagedType.BStr)]
     public string Name;
     public uint SampleRate;
     public ushort BitsPerSample;
@@ -34,6 +36,16 @@ public sealed class AudioDeviceInfo : ReactiveObject
     {
         get => _isChecked;
         set => this.RaiseAndSetIfChanged(ref _isChecked, value);
+    }
+
+    public AudioDeviceInfo(uint pipeId, string id, uint sampleRate, ushort bitsPerSample, ushort channels, string name)
+    {
+        PipeId = pipeId;
+        Id = id;
+        SampleRate = sampleRate;
+        BitsPerSample = bitsPerSample;
+        Channels = channels;
+        Name = name;
     }
 
     public AudioDeviceInfo(NativeAudioDeviceInfo deviceInfo)

@@ -71,23 +71,37 @@ public sealed class OverlayWindowViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _processesFilterText, value);
     }
 
+    private bool _isSettingsDialogOpened;
+    public bool IsSettingsDialogOpened
+    {
+        get => _isSettingsDialogOpened;
+        private set
+        {
+            if (_isSettingsDialogOpened == value)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _isSettingsDialogOpened, value);
+
+            if (!_isSettingsDialogOpened)
+                _activeInstantReplayProcessor?.SetAllInstantReplayDuration(SettingsDialogViewModel.Instance
+                    .InstantReplayDurationSeconds);
+        }
+    }
+
     private readonly ObservableAsPropertyHelper<ObservableCollection<AudioDeviceInfo>> _filteredAudioDevices;
     public ObservableCollection<AudioDeviceInfo> FilteredAudioDevices => _filteredAudioDevices.Value;
 
     private readonly ObservableAsPropertyHelper<ObservableCollection<ProcessInfo>> _filteredProcesses;
     public ObservableCollection<ProcessInfo> FilteredProcesses => _filteredProcesses.Value;
-
+    
     private AudioDataProcessor? _activeInstantReplayProcessor;
     private AudioDataProcessor? _activeRecordingProcessor;
-
-    public bool IsContentDialogOpened { get; private set; }
 
     public OverlayWindowViewModel()
     {
         if (Application.Current != null)
             Application.Current.PropertyChanged += OnApplicationPropertyChanged;
-
-        _ = AudioCaptureService.InitializeAudioDevicesAsync();
+        
         _ = AudioCaptureService.InitializeProcessesAsync();
 
         StartInstantReplayCommand = ReactiveCommand.CreateFromTask(StartInstantReplayAsync,
@@ -109,7 +123,7 @@ public sealed class OverlayWindowViewModel : ReactiveObject
 
         OpenSettingsDialogCommand = ReactiveCommand.CreateFromTask(OpenSettingsDialogAsync);
 
-        var audioDevicesChanged = AudioCaptureService.AudioDevicesInfo
+        var audioDevicesChanged = AudioDeviceService.Instance.ActiveAudioDevices
             .ToObservableChangeSet()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Select(_ => Unit.Default);
@@ -153,7 +167,7 @@ public sealed class OverlayWindowViewModel : ReactiveObject
 
     private ObservableCollection<AudioDeviceInfo> FilterAudioDevices()
     {
-        var filtered = AudioCaptureService.AudioDevicesInfo
+        var filtered = AudioDeviceService.Instance.ActiveAudioDevices
             .Where(device =>
                 string.IsNullOrWhiteSpace(DevicesFilterText) ||
                 device.Name.Contains(DevicesFilterText, StringComparison.OrdinalIgnoreCase))
@@ -181,7 +195,7 @@ public sealed class OverlayWindowViewModel : ReactiveObject
         {
             var activeRecordingProcesses =
                 AudioCaptureService.ProcessesInfo.Where(p => p.IsChecked).ToList();
-            var activeRecordingAudioDevices = AudioCaptureService.AudioDevicesInfo
+            var activeRecordingAudioDevices = AudioDeviceService.Instance.ActiveAudioDevices
                 .Where(ad => ad.IsChecked)
                 .Select(ad => ad.ToNativeAudioDeviceInfo()).ToList();
 
@@ -196,7 +210,7 @@ public sealed class OverlayWindowViewModel : ReactiveObject
 
             SettingsDialogViewModel.Instance
                 .WhenAnyValue(vm => vm.InstantReplayDurationSeconds)
-                .Subscribe(newDuration => _activeInstantReplayProcessor.SetAllInstantReplayDuration(newDuration));
+                .Subscribe(newDuration => _activeInstantReplayProcessor?.SetAllInstantReplayDuration(newDuration));
 
             var ok = _activeInstantReplayProcessor.Start();
             if (!ok)
@@ -249,7 +263,7 @@ public sealed class OverlayWindowViewModel : ReactiveObject
         {
             var activeRecordingProcesses =
                 AudioCaptureService.ProcessesInfo.Where(p => p.IsChecked).ToList();
-            var activeRecordingAudioDevices = AudioCaptureService.AudioDevicesInfo
+            var activeRecordingAudioDevices = AudioDeviceService.Instance.ActiveAudioDevices
                 .Where(ad => ad.IsChecked)
                 .Select(ad => ad.ToNativeAudioDeviceInfo()).ToList();
 
@@ -330,9 +344,9 @@ public sealed class OverlayWindowViewModel : ReactiveObject
             }
         };
 
-        IsContentDialogOpened = true;
+        IsSettingsDialogOpened = true;
         var result = await contentDialog.ShowAsync();
-        IsContentDialogOpened = false;
+        IsSettingsDialogOpened = false;
 
         if (result == ContentDialogResult.Primary)
         {

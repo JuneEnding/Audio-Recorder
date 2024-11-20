@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AudioRecorder.Core": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

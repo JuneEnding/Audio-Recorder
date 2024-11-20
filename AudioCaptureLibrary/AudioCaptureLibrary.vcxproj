@@ -155,6 +155,8 @@
   <ItemGroup>
     <ClCompile Include="AudioCaptureInterface.cpp" />
     <ClCompile Include="AudioDeviceCapture.cpp" />
+    <ClCompile Include="AudioDeviceManager.cpp" />
+    <ClCompile Include="AudioDeviceNotificationClient.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="ApplicationLoopbackCapture.cpp" />
     <ClCompile Include="Logger.cpp" />
@@ -162,6 +164,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioDeviceCapture.h" />
+    <ClInclude Include="AudioDeviceManager.h" />
+    <ClInclude Include="AudioDeviceNotificationClient.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ApplicationLoopbackCapture.h" />

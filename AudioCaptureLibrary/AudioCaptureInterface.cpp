@@ -22,94 +22,76 @@
 #include "ApplicationLoopbackCapture.h"
 #include "AudioDeviceCapture.h"
 #include "Logger.h"
+#include "AudioDeviceManager.h"
 
 
-extern "C" {
-    struct NativeAudioDeviceInfo {
-        DWORD PipeId;
-        BSTR Id;
-        BSTR Name;
-        DWORD SampleRate;
-        WORD BitsPerSample;
-        WORD Channels;
-    };
+static AudioDeviceManager* manager = new AudioDeviceManager();
 
-    __declspec(dllexport) NativeAudioDeviceInfo* GetAudioDevices(int *deviceCount);
-    __declspec(dllexport) void FreeAudioDevicesArray(NativeAudioDeviceInfo* devices, int deviceCount);
-    __declspec(dllexport) long long StartCapture(int *pids, int count, NativeAudioDeviceInfo *audioDevices, int deviceCount);
-    __declspec(dllexport) void StopCapture(long long captureId);
+extern "C" __declspec(dllexport) void __stdcall RegisterNotificationCallback(DeviceStateChangedCallback callback) {
+    Logger::GetInstance().Log("RegisterNotificationCallback", LogLevel::Info);
+    manager->RegisterNotificationCallback(callback);
+}
+
+extern "C" __declspec(dllexport) void __stdcall UnregisterNotificationCallback() {
+    Logger::GetInstance().Log("UnregisterNotificationCallback", LogLevel::Info);
+    manager->UnregisterNotificationCallback();
+}
+
+extern "C" __declspec(dllexport) void __stdcall GetActiveAudioDevices(NativeAudioDeviceInfo** devices, int* count) {
+    Logger::GetInstance().Log("GetActiveAudioDevices", LogLevel::Info);
+    if (!devices || !count)
+        return;
+
+    auto activeDevices = manager->GetActiveAudioDevices();
+    *count = static_cast<int>(activeDevices.size());
+    Logger::GetInstance().Log("Devices count: " + std::to_string(*count), LogLevel::Info);
+
+    *devices = new NativeAudioDeviceInfo[*count];
+    std::copy(activeDevices.begin(), activeDevices.end(), *devices);
+}
+
+extern "C" __declspec(dllexport) void __stdcall FreeAudioDevicesArray(NativeAudioDeviceInfo* devices, int count) {
+    Logger::GetInstance().Log("FreeAudioDevicesArray", LogLevel::Info);
+
+    if (devices) {
+        for (int i = 0; i < count; ++i) {
+            SysFreeString(devices[i].Name);
+            SysFreeString(devices[i].Id);
+        }
+        delete[] devices;
+    }
+}
+
+extern "C" __declspec(dllexport) NativeAudioDeviceInfo* __stdcall GetAudioDeviceInfo(const wchar_t* deviceId) {
+    Logger::GetInstance().Log("GetAudioDeviceInfo", LogLevel::Info);
+    if (!deviceId) {
+        Logger::GetInstance().Log("Device ID is null", LogLevel::Warning);
+        return nullptr;
+    }
+
+    std::wstring deviceIdStr(deviceId);
+    auto deviceInfoOpt = manager->GetAudioDeviceInfo(deviceIdStr);
+
+    if (!deviceInfoOpt.has_value()) {
+        Logger::GetInstance().Log("Failed to get device info for ID: " + std::string(deviceIdStr.begin(), deviceIdStr.end()), LogLevel::Error);
+        return nullptr;
+    }
+
+    NativeAudioDeviceInfo* result = new NativeAudioDeviceInfo();
+    *result = deviceInfoOpt.value();
+    return result;
+}
+
+extern "C" __declspec(dllexport) void __stdcall FreeAudioDevice(NativeAudioDeviceInfo* device) {
+    if (device != nullptr) {
+        SysFreeString(device->Id);
+        SysFreeString(device->Name);
+        delete device;
+    }
 }
 
 std::map<long long, std::vector<ComPtr<ApplicationLoopbackCapture>>> activeAppCaptures;
 std::map<long long, std::vector<std::unique_ptr<AudioDeviceCapture>>> activeDeviceCaptures;
-
-DWORD GetDeviceIdHash(const std::wstring& deviceId) {
-    DWORD hash = 2166136261u;
-
-    for (wchar_t ch : deviceId) {
-        hash ^= ch;
-        hash *= 16777619u;
-    }
-
-    return hash;
-}
-
-NativeAudioDeviceInfo* GetAudioDevices(int* deviceCount) {
-    std::vector<NativeAudioDeviceInfo> devices = {};
-
-    wil::com_ptr_nothrow<IMMDeviceEnumerator> enumerator;
-    if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, IID_PPV_ARGS(&enumerator)))) {
-        wil::com_ptr_nothrow<IMMDeviceCollection> deviceCollection;
-        if (SUCCEEDED(enumerator->EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE, &deviceCollection))) {
-            UINT count;
-            if (SUCCEEDED(deviceCollection->GetCount(&count))) {
-                for (UINT i = 0; i < count; ++i) {
-                    wil::com_ptr_nothrow<IMMDevice> device;
-                    if (SUCCEEDED(deviceCollection->Item(i, &device))) {
-                        wil::unique_prop_variant name;
-                        wil::com_ptr_nothrow<IPropertyStore> store;
-                        if (SUCCEEDED(device->OpenPropertyStore(STGM_READ, &store)) &&
-                            SUCCEEDED(store->GetValue(PKEY_Device_FriendlyName, &name))) {
-                            wil::unique_cotaskmem_string deviceId;
-                            if (SUCCEEDED(device->GetId(&deviceId))) {
-                                PWSTR id = deviceId.get();
-                                DWORD deviceHash = GetDeviceIdHash(id);
-
-                                wil::com_ptr_nothrow<IAudioClient> audioClient;
-                                if (SUCCEEDED(device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, reinterpret_cast<void**>(&audioClient)))) {
-                                    WAVEFORMATEX* waveFormat;
-                                    if (SUCCEEDED(audioClient->GetMixFormat(&waveFormat))) {
-                                        DWORD sampleRate = waveFormat->nSamplesPerSec;
-                                        WORD bitsPerSample = waveFormat->wBitsPerSample;
-                                        WORD channels = waveFormat->nChannels;
-
-                                        NativeAudioDeviceInfo deviceInfo = { deviceHash, SysAllocString(id), SysAllocString(name.pwszVal), sampleRate, bitsPerSample, channels };
-                                        devices.push_back(deviceInfo);
-
-                                        CoTaskMemFree(waveFormat);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    *deviceCount = static_cast<int>(devices.size());
-    NativeAudioDeviceInfo* devicesArray = new NativeAudioDeviceInfo[*deviceCount];
-    std::copy(devices.begin(), devices.end(), devicesArray);
-
-    return devicesArray;
-}
-
-void FreeAudioDevicesArray(NativeAudioDeviceInfo* devices, int deviceCount) {
-    for (int i = 0; i < deviceCount; ++i) {
-        SysFreeString(devices[i].Name);
-    }
-    delete[] devices;
-}
 
 long long GenerateUniqueId() {
     auto now = std::chrono::system_clock::now();
@@ -120,7 +102,7 @@ long long GenerateUniqueId() {
     return millis;
 }
 
-long long StartCapture(int* pids, int count, NativeAudioDeviceInfo* audioDevices, int deviceCount) {
+extern "C" __declspec(dllexport) long long __stdcall StartCapture(int* pids, int count, NativeAudioDeviceInfo * audioDevices, int deviceCount) {
     auto captureId = GenerateUniqueId();
 
     for (int i = 0; i < deviceCount; ++i) {
@@ -146,7 +128,7 @@ long long StartCapture(int* pids, int count, NativeAudioDeviceInfo* audioDevices
     return captureId;
 }
 
-void StopCapture(long long captureId) {
+extern "C" __declspec(dllexport) void __stdcall StopCapture(long long captureId) {
     auto deviceIt = activeDeviceCaptures.find(captureId);
     if (deviceIt != activeDeviceCaptures.end()) {
         for (auto& capture : deviceIt->second) {

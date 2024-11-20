@@ -1,16 +1,18 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using AudioRecorder.Core.Data;
 using AudioSwitcher.AudioApi.CoreAudio;
 using AudioSwitcher.AudioApi;
-using System.Management;
 
 namespace AudioRecorder.Core.Services;
 
 public static class AudioCaptureService
 {
-    public static RangedObservableCollection<AudioDeviceInfo> AudioDevicesInfo { get; } = new();
     public static RangedObservableCollection<ProcessInfo> ProcessesInfo { get; } = new();
 
     public static long StartCapture(List<ProcessInfo> processes, List<NativeAudioDeviceInfo> audioDevices)
@@ -21,35 +23,6 @@ public static class AudioCaptureService
 
     [DllImport("AudioCaptureLibrary.dll", CharSet = CharSet.Unicode)]
     public static extern void StopCapture(long captureId);
-
-    public static async Task InitializeAudioDevicesAsync()
-    {
-        var result = await Task.Run(() =>
-        {
-            var deviceArrayPtr = GetAudioDevices(out var deviceCount);
-            if (deviceArrayPtr == IntPtr.Zero || deviceCount == 0)
-                return null;
-
-            var devices = new NativeAudioDeviceInfo[deviceCount];
-            var currentPtr = deviceArrayPtr;
-
-            var structSize = Marshal.SizeOf(typeof(NativeAudioDeviceInfo));
-            for (var i = 0; i < deviceCount; ++i)
-            {
-                devices[i] = Marshal.PtrToStructure<NativeAudioDeviceInfo>(currentPtr);
-                currentPtr = IntPtr.Add(currentPtr, structSize);
-            }
-
-            FreeAudioDevicesArray(deviceArrayPtr, deviceCount);
-
-            return devices.Select(device => new AudioDeviceInfo(device));
-        }).ConfigureAwait(false);
-
-        if (result == null)
-            AudioDevicesInfo.Clear();
-        else
-            AudioDevicesInfo.Refresh(result.ToList());
-    }
 
     public static async Task InitializeProcessesAsync()
     {

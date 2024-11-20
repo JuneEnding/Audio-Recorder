@@ -1,6 +1,12 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.IO.Pipes;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using AudioRecorder.Core.Data;
 
 namespace AudioRecorder.Core.Services;
@@ -8,7 +14,7 @@ namespace AudioRecorder.Core.Services;
 public sealed class AudioDataProcessor
 {
     private const string PipeNameTemplate = "AudioDataPipe_{0}_{1}";
-    private const string FileNameTemplate = "{0}_{1}.wav";
+    private const string FileNameTemplate = "{0}_{1}_{2}.wav";
     private const int PipeTimeout = 2000;
 
     private readonly bool _isInstantReplayMode;
@@ -148,7 +154,7 @@ public sealed class AudioDataProcessor
         if (!Directory.Exists(directoryName))
             Directory.CreateDirectory(directoryName);
 
-        var fileName = string.Format(FileNameTemplate, audioData.Name, audioData.CaptureId);
+        var fileName = string.Format(FileNameTemplate, audioData.Name, audioData.CaptureId, audioData.PipeId);
         var filePath = Path.Combine(directoryName,  fileName);
         var wavData = ConvertToWav(audioData.Buffer, sampleRate: (int)audioData.SampleRate,
             bitsPerSample: audioData.BitsPerSample, channels: audioData.Channels);
