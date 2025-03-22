@@ -26,12 +26,12 @@ HRESULT AudioDeviceCapture::StartCaptureAsync(const std::wstring& deviceId, DWOR
     RETURN_IF_FAILED(InitializeCapture());
 
     wil::com_ptr_nothrow<IMMDeviceEnumerator> enumerator;
-    RETURN_IF_FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, IID_PPV_ARGS(&enumerator)));
+    RETURN_IF_FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator), reinterpret_cast<void**>(&enumerator)));
 
     wil::com_ptr_nothrow<IMMDevice> device;
     RETURN_IF_FAILED(enumerator->GetDevice(deviceId.c_str(), &device));
 
-    RETURN_IF_FAILED(device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, reinterpret_cast<void**>(&m_AudioClient)));
+    RETURN_IF_FAILED(device->Activate(__uuidof(IAudioClient), CLSCTX_INPROC_SERVER, nullptr, reinterpret_cast<void**>(&m_AudioClient)));
 
     RETURN_IF_FAILED(m_AudioClient->GetMixFormat(&m_CaptureFormat));
 

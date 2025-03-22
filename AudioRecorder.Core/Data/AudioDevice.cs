@@ -4,7 +4,7 @@ using ReactiveUI;
 namespace AudioRecorder.Core.Data;
 
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-public struct NativeAudioDeviceInfo
+internal struct AudioDeviceInfo
 {
     public uint PipeId;
     [MarshalAs(UnmanagedType.BStr)]
@@ -16,7 +16,7 @@ public struct NativeAudioDeviceInfo
     public ushort Channels;
 }
 
-public sealed class AudioDeviceInfo : ReactiveObject
+internal class AudioDevice : ReactiveObject
 {
     public uint PipeId { get; }
     public string Id { get; }
@@ -38,17 +38,7 @@ public sealed class AudioDeviceInfo : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _isChecked, value);
     }
 
-    public AudioDeviceInfo(uint pipeId, string id, uint sampleRate, ushort bitsPerSample, ushort channels, string name)
-    {
-        PipeId = pipeId;
-        Id = id;
-        SampleRate = sampleRate;
-        BitsPerSample = bitsPerSample;
-        Channels = channels;
-        Name = name;
-    }
-
-    public AudioDeviceInfo(NativeAudioDeviceInfo deviceInfo)
+    public AudioDevice(AudioDeviceInfo deviceInfo)
     {
         PipeId = deviceInfo.PipeId;
         Id = deviceInfo.Id;
@@ -58,7 +48,7 @@ public sealed class AudioDeviceInfo : ReactiveObject
         Channels = deviceInfo.Channels;
     }
 
-    public NativeAudioDeviceInfo ToNativeAudioDeviceInfo() =>
+    public AudioDeviceInfo ToAudioDeviceInfo() =>
         new()
         {
             PipeId = PipeId,

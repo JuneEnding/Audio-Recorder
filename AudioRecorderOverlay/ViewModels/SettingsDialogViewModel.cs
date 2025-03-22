@@ -11,7 +11,7 @@ using ReactiveUI;
 
 namespace AudioRecorderOverlay.ViewModels;
 
-public sealed class SettingsDialogViewModel : ReactiveObject
+internal sealed class SettingsDialogViewModel : ReactiveObject
 {
     private const string JsonFilePath = "settings.json";
     private const string SystemTheme = "System";

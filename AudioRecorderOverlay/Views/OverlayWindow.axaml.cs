@@ -15,7 +15,7 @@ using AudioRecorderOverlay.ViewModels;
 
 namespace AudioRecorderOverlay.Views;
 
-public sealed partial class OverlayWindow : AppWindow
+internal sealed partial class OverlayWindow : AppWindow
 {
     private IInputElement? _previousFocusedElement;
     private bool _isMenuFocused;

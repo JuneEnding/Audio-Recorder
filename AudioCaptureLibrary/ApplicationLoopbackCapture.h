@@ -18,7 +18,7 @@ class ApplicationLoopbackCapture :
     public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
 {
 public:
-    ApplicationLoopbackCapture(long long captureId) :m_CaptureId(captureId) {}
+    ApplicationLoopbackCapture(long long captureId) : m_CaptureId(captureId) {}
     ~ApplicationLoopbackCapture();
 
     HRESULT StartCaptureAsync(DWORD processId, bool includeProcessTree);

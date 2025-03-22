@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
 using AudioRecorder.Core.Data;
 using System.Runtime.InteropServices;
 
 namespace AudioRecorder.Core.Services;
 
-public sealed class AudioDeviceService
+internal sealed class InputAudioDeviceService
 {
     private const int DeviceStateActive = 0x00000001;
     private const int DeviceStateDisabled = 0x00000002;
@@ -19,21 +15,21 @@ public sealed class AudioDeviceService
     [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable")]
     private static DeviceStateChangedCallback? _deviceStateChangedCallback;
 
-    private static readonly Lazy<AudioDeviceService> _instance = new(() => new AudioDeviceService());
-    public static AudioDeviceService Instance => _instance.Value;
+    private static readonly Lazy<InputAudioDeviceService> _instance = new(() => new InputAudioDeviceService());
+    public static InputAudioDeviceService Instance => _instance.Value;
 
-    public RangedObservableCollection<AudioDeviceInfo> ActiveAudioDevices { get; } = new();
+    public readonly RangedObservableCollection<InputAudioDevice> ActiveInputAudioDevices = new();
 
     public event Action<string, int>? DeviceStateChanged;
 
-    private AudioDeviceService()
+    private InputAudioDeviceService()
     {
         try
         {
             _deviceStateChangedCallback = OnDeviceStateChanged;
-            RegisterNotificationCallback(_deviceStateChangedCallback);
+            RegisterInputNotificationCallback(_deviceStateChangedCallback);
             var devices = GetActiveAudioDevices();
-            ActiveAudioDevices.AddRange(devices);
+            ActiveInputAudioDevices.AddRange(devices);
 
             Logger.LogInfo("Listening for audio device changes...");
         }
@@ -43,9 +39,9 @@ public sealed class AudioDeviceService
         }
     }
 
-    ~AudioDeviceService()
+    ~InputAudioDeviceService()
     {
-        UnregisterNotificationCallback();
+        UnregisterInputNotificationCallback();
     }
 
     private void OnDeviceStateChanged(string deviceId, int newState)
@@ -56,69 +52,72 @@ public sealed class AudioDeviceService
             if (audioDeviceInfo == null)
                 return;
 
-            ActiveAudioDevices.Add(audioDeviceInfo);
+            ActiveInputAudioDevices.Add(audioDeviceInfo);
         }
         else
         {
-            var deviceToRemove = ActiveAudioDevices.First(device => device.Id == deviceId);
-            ActiveAudioDevices.Remove(deviceToRemove);
+            var deviceToRemove = ActiveInputAudioDevices.FirstOrDefault(device => device.Id == deviceId);
+            if (deviceToRemove == null)
+                return;
+
+            ActiveInputAudioDevices.Remove(deviceToRemove);
         }
 
         DeviceStateChanged?.Invoke(deviceId, newState);
     }
 
-    private static IEnumerable<AudioDeviceInfo> GetActiveAudioDevices()
+    private static IEnumerable<InputAudioDevice> GetActiveAudioDevices()
     {
-        GetActiveAudioDevices(out var devicesPtr, out var count);
+        GetActiveInputAudioDevices(out var devicesPtr, out var count);
 
-        var devices = new AudioDeviceInfo[count];
+        var devices = new InputAudioDevice[count];
         if (count == 0 || devicesPtr == IntPtr.Zero)
             return devices;
 
-        var structSize = Marshal.SizeOf<NativeAudioDeviceInfo>();
+        var structSize = Marshal.SizeOf<InputAudioDeviceInfo>();
 
         for (var i = 0; i < count; ++i)
         {
             var devicePtr = IntPtr.Add(devicesPtr, i * structSize);
-            devices[i] = new AudioDeviceInfo(Marshal.PtrToStructure<NativeAudioDeviceInfo>(devicePtr));
+            devices[i] = new InputAudioDevice(Marshal.PtrToStructure<InputAudioDeviceInfo>(devicePtr).DeviceInfo);
         }
 
-        FreeAudioDevicesArray(devicesPtr, count);
+        FreeInputAudioDevicesArray(devicesPtr, count);
 
         return devices;
     }
 
-    private static AudioDeviceInfo? GetAudioDevice(string deviceId)
+    private static InputAudioDevice? GetAudioDevice(string deviceId)
     {
-        var audioDevicePtr = GetAudioDeviceInfo(deviceId);
+        var audioDevicePtr = GetInputAudioDeviceInfo(deviceId);
 
         if (audioDevicePtr == IntPtr.Zero)
             return null;
 
-        var device = new AudioDeviceInfo(Marshal.PtrToStructure<NativeAudioDeviceInfo>(audioDevicePtr));
+        var device = new InputAudioDevice(Marshal.PtrToStructure<InputAudioDeviceInfo>(audioDevicePtr).DeviceInfo);
 
-        FreeAudioDevice(audioDevicePtr);
+        FreeInputAudioDevice(audioDevicePtr);
 
         return device;
     }
 
     [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.StdCall)]
-    private static extern void GetActiveAudioDevices(out IntPtr devices, out int count);
+    private static extern void GetActiveInputAudioDevices(out IntPtr devices, out int count);
 
     [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.StdCall)]
-    private static extern void FreeAudioDevicesArray(IntPtr devices, int count);
+    private static extern void FreeInputAudioDevicesArray(IntPtr devices, int count);
 
     [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.StdCall)]
-    private static extern IntPtr GetAudioDeviceInfo([MarshalAs(UnmanagedType.LPWStr)] string deviceId);
+    private static extern IntPtr GetInputAudioDeviceInfo([MarshalAs(UnmanagedType.LPWStr)] string deviceId);
 
     [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.StdCall)]
-    private static extern void FreeAudioDevice(IntPtr device);
+    private static extern void FreeInputAudioDevice(IntPtr device);
 
     [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.StdCall)]
-    private static extern void RegisterNotificationCallback(DeviceStateChangedCallback callback);
+    private static extern void RegisterInputNotificationCallback(DeviceStateChangedCallback callback);
 
     [DllImport("AudioCaptureLibrary.dll", CallingConvention = CallingConvention.StdCall)]
-    private static extern void UnregisterNotificationCallback();
+    private static extern void UnregisterInputNotificationCallback();
 
     private delegate void DeviceStateChangedCallback([MarshalAs(UnmanagedType.LPWStr)] string deviceId, int newState);
 }

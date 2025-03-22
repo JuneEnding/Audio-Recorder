@@ -1,6 +1,6 @@
 ﻿namespace AudioRecorderOverlay.Enums;
 
-public enum RecordingState
+internal enum RecordingState
 {
     Stopped,
     Recording,

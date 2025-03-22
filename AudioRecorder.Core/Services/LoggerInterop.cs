@@ -1,9 +1,8 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace AudioRecorder.Core.Services;
 
-public static class LoggerInterop
+internal static class LoggerInterop
 {
     private static Logger.LogDelegate? _logDelegate;
 

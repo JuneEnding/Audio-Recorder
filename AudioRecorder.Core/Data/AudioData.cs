@@ -2,13 +2,13 @@
 
 namespace AudioRecorder.Core.Data;
 
-public enum AudioTargetType
+internal enum AudioTargetType
 {
     Process = 0,
     AudioDevice
 }
 
-public sealed class AudioData
+internal sealed class AudioData
 {
     private readonly bool _isInstantReplayMode;
     private readonly Queue<byte> _instantReplayBuffer = new();
@@ -50,7 +50,7 @@ public sealed class AudioData
             SetInstantReplayBufferSize(replayDurationSeconds);
     }
 
-    public AudioData(NativeAudioDeviceInfo deviceInfo, long captureId, AudioTargetType type, bool isInstantReplayMode = false,
+    public AudioData(AudioDeviceInfo deviceInfo, long captureId, AudioTargetType type, bool isInstantReplayMode = false,
         int replayDurationSeconds = 0) : this(captureId, type, isInstantReplayMode, replayDurationSeconds)
     {
         PipeId = deviceInfo.PipeId;

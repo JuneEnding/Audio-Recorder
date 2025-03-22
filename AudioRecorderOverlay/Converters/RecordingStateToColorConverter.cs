@@ -9,7 +9,7 @@ using Avalonia.Styling;
 
 namespace AudioRecorderOverlay.Converters;
 
-internal class RecordingStateToColorConverter : IValueConverter
+internal sealed class RecordingStateToColorConverter : IValueConverter
 {
     private static ThemeVariant? _previousThemeVariant;
     private static IBrush? _defaultBrush;

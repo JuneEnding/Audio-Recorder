@@ -33,10 +33,22 @@
     <ClCompile Include="Logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AudioDeviceManager.cpp">
+    <ClCompile Include="AudioDeviceManagerBase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AudioDeviceNotificationClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InputAudioDeviceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutputAudioDeviceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioSessionEvents.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioSessionNotification.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,7 +74,22 @@
     <ClInclude Include="AudioDeviceNotificationClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AudioDeviceManager.h">
+    <ClInclude Include="AudioDeviceManagerBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioDeviceInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InputAudioDeviceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutputAudioDeviceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioSessionEvents.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioSessionNotification.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

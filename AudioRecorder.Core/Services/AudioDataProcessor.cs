@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Pipes;
-using System.Linq;
+﻿using System.IO.Pipes;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using AudioRecorder.Core.Data;
 
 namespace AudioRecorder.Core.Services;
 
-public sealed class AudioDataProcessor
+internal sealed class AudioDataProcessor
 {
     private const string PipeNameTemplate = "AudioDataPipe_{0}_{1}";
     private const string FileNameTemplate = "{0}_{1}_{2}.wav";
@@ -19,21 +12,23 @@ public sealed class AudioDataProcessor
 
     private readonly bool _isInstantReplayMode;
     private readonly int _instantReplayDuration;
-    private readonly List<AudioData> _audioDataList;
+    private readonly AudioData[] _audioDataList;
 
     public long CaptureId { get; }
 
-    public AudioDataProcessor(long captureId, IEnumerable<ProcessInfo> processes,
-        IEnumerable<NativeAudioDeviceInfo> audioDevices, bool isInstantReplayMode = false,
+    public AudioDataProcessor(long captureId, IEnumerable<AudioDeviceInfo> inputDevices,
+        IEnumerable<AudioDeviceInfo> outputDevices, IEnumerable<AudioSessionInfo> sessions, bool isInstantReplayMode = false,
         int instantReplayDuration = 0)
     {
         CaptureId = captureId;
-        _audioDataList = audioDevices
+        _audioDataList = inputDevices
             .Select(ad => new AudioData(ad, captureId, AudioTargetType.AudioDevice, isInstantReplayMode,
                 instantReplayDuration))
-            .Concat(processes.Select(process =>
+            .Concat(outputDevices.Select(ad => new AudioData(ad, captureId, AudioTargetType.AudioDevice,
+                isInstantReplayMode, instantReplayDuration)))
+            .Concat(sessions.Select(session =>
                 new AudioData(captureId, AudioTargetType.Process, isInstantReplayMode, instantReplayDuration)
-                    { PipeId = process.Id, Name = process.Name })).ToList();
+                    { PipeId = session.PipeId, Name = session.DisplayName })).ToArray();
         _isInstantReplayMode = isInstantReplayMode;
         _instantReplayDuration = instantReplayDuration;
     }
@@ -132,7 +127,20 @@ public sealed class AudioDataProcessor
 
     private async Task<int> ReadFromPipeWithTimeoutAsync(BinaryReader reader, byte[] buffer, int timeoutMilliseconds)
     {
-        var readTask = Task.Run(() => reader.Read(buffer, 0, buffer.Length));
+        var readTask = Task.Run(() =>
+        {
+            try
+            {
+                return reader.Read(buffer, 0, buffer.Length);
+            }
+            catch (ObjectDisposedException)
+            {
+                // ignored
+            }
+
+            return 0;
+        });
+
         var completedTask = await Task.WhenAny(readTask, Task.Delay(timeoutMilliseconds));
 
         if (completedTask == readTask)
@@ -151,13 +159,28 @@ public sealed class AudioDataProcessor
 
     private void SaveAudioData(AudioData audioData, string directoryName)
     {
-        if (!Directory.Exists(directoryName))
-            Directory.CreateDirectory(directoryName);
+        var audioBuffer = audioData.Buffer.ToArray();
+        audioData.ClearBuffer();
 
-        var fileName = string.Format(FileNameTemplate, audioData.Name, audioData.CaptureId, audioData.PipeId);
-        var filePath = Path.Combine(directoryName,  fileName);
-        var wavData = ConvertToWav(audioData.Buffer, sampleRate: (int)audioData.SampleRate,
+        var wavData = ConvertToWav(audioBuffer, sampleRate: (int)audioData.SampleRate,
             bitsPerSample: audioData.BitsPerSample, channels: audioData.Channels);
+
+        var now = DateTime.Now;
+        var dateFolder = now.ToString("dd.MM.yyyy");
+        var timeFolder = now.ToString("HH-mm-ss");
+        var targetDirectory = Path.Combine(directoryName, dateFolder, timeFolder);
+
+        if (!Directory.Exists(targetDirectory))
+            Directory.CreateDirectory(targetDirectory);
+
+        var filePath = Path.Combine(targetDirectory, $"{audioData.Name}.wav");
+
+        var index = 1;
+        while (File.Exists(filePath))
+        {
+            filePath = Path.Combine(targetDirectory, $"{audioData.Name}_{index}.wav");
+            ++index;
+        }
 
         File.WriteAllBytes(filePath, wavData);
     }

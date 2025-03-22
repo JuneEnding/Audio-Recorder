@@ -3,7 +3,7 @@ using Avalonia.Media.Imaging;
 
 namespace AudioRecorder.Core.Services;
 
-public static class ResourceHelper
+internal static class ResourceHelper
 {
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr LoadLibrary(string lpFileName);

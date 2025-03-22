@@ -2,13 +2,13 @@
 
 #include <mmdeviceapi.h>
 #include <audiopolicy.h>
-#include <functiondiscoverykeys_devpkey.h>
+#include <wil/com.h>
 
 typedef void(__stdcall* DeviceStateChangedCallback)(const wchar_t* deviceId, int newState);
 
 class AudioDeviceNotificationClient : public IMMNotificationClient {
 public:
-    explicit AudioDeviceNotificationClient(DeviceStateChangedCallback callback);
+    explicit AudioDeviceNotificationClient(DeviceStateChangedCallback callback, wil::com_ptr<IMMDeviceEnumerator> enumerator, EDataFlow flow);
 
     STDMETHODIMP_(ULONG) AddRef() override;
     STDMETHODIMP_(ULONG) Release() override;
@@ -23,4 +23,6 @@ public:
 private:
     LONG _refCount;
     DeviceStateChangedCallback _stateChangedCallback;
+    EDataFlow _dataFlow;
+    wil::com_ptr<IMMDeviceEnumerator> _deviceEnumerator;
 };

@@ -6,7 +6,7 @@ using Avalonia.Media;
 
 namespace AudioRecorderOverlay.Converters;
 
-internal class RecordingStateFontWeightConverter : IValueConverter
+internal sealed class RecordingStateFontWeightConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

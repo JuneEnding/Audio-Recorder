@@ -7,7 +7,7 @@ using Avalonia.Win32.Input;
 
 namespace AudioRecorderOverlay.Services;
 
-public static class HotkeyManager
+internal static class HotkeyManager
 {
     [DllImport("user32.dll")]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);

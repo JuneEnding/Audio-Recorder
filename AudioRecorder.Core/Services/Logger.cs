@@ -3,7 +3,7 @@ using Serilog;
 
 namespace AudioRecorder.Core.Services;
 
-public static class Logger
+internal static class Logger
 {
     private const string LogFilePath = "Logs/log.txt";
 
@@ -18,6 +18,7 @@ public static class Logger
     public static void LogInfo(string message) => Log.Information(message);
     public static void LogWarning(string message) => Log.Warning(message);
     public static void LogError(string message) => Log.Error(message);
+    public static void LogDebug(string message) => Log.Debug(message);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void LogDelegate(string message, int level);
@@ -29,6 +30,7 @@ public static class Logger
             case 0: LogInfo(message); break;
             case 1: LogWarning(message); break;
             case 2: LogError(message); break;
+            case 3: LogDebug(message); break;
             default: LogInfo(message); break;
         }
     }

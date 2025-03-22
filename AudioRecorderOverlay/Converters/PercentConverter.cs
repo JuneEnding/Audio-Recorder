@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace AudioRecorderOverlay.Converters;
 
-public class PercentConverter : IValueConverter
+internal sealed class PercentConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

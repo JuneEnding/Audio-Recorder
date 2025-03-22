@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -19,7 +18,7 @@ using ReactiveUI;
 
 namespace AudioRecorderOverlay.ViewModels;
 
-public sealed class OverlayWindowViewModel : ReactiveObject
+internal sealed class OverlayWindowViewModel : ReactiveObject
 {
     public ReactiveCommand<Unit, Unit> StartInstantReplayCommand { get; }
     public ReactiveCommand<Unit, Unit> StopInstantReplayCommand { get; }
@@ -88,11 +87,11 @@ public sealed class OverlayWindowViewModel : ReactiveObject
         }
     }
 
-    private readonly ObservableAsPropertyHelper<ObservableCollection<AudioDeviceInfo>> _filteredAudioDevices;
-    public ObservableCollection<AudioDeviceInfo> FilteredAudioDevices => _filteredAudioDevices.Value;
+    private readonly ObservableAsPropertyHelper<ObservableCollection<InputAudioDevice>> _filteredAudioDevices;
+    public ObservableCollection<InputAudioDevice> FilteredAudioDevices => _filteredAudioDevices.Value;
 
-    private readonly ObservableAsPropertyHelper<ObservableCollection<ProcessInfo>> _filteredProcesses;
-    public ObservableCollection<ProcessInfo> FilteredProcesses => _filteredProcesses.Value;
+    private readonly ObservableAsPropertyHelper<ObservableCollection<AudioSession>> _filteredAudioSessions;
+    public ObservableCollection<AudioSession> FilteredAudioSessions => _filteredAudioSessions.Value;
     
     private AudioDataProcessor? _activeInstantReplayProcessor;
     private AudioDataProcessor? _activeRecordingProcessor;
@@ -102,8 +101,6 @@ public sealed class OverlayWindowViewModel : ReactiveObject
         if (Application.Current != null)
             Application.Current.PropertyChanged += OnApplicationPropertyChanged;
         
-        _ = AudioCaptureService.InitializeProcessesAsync();
-
         StartInstantReplayCommand = ReactiveCommand.CreateFromTask(StartInstantReplayAsync,
             this.WhenAnyValue(x => x.InstantReplayState).Select(state => state == RecordingState.Stopped));
 
@@ -123,12 +120,12 @@ public sealed class OverlayWindowViewModel : ReactiveObject
 
         OpenSettingsDialogCommand = ReactiveCommand.CreateFromTask(OpenSettingsDialogAsync);
 
-        var audioDevicesChanged = AudioDeviceService.Instance.ActiveAudioDevices
+        var audioDevicesChanged = InputAudioDeviceService.Instance.ActiveInputAudioDevices
             .ToObservableChangeSet()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Select(_ => Unit.Default);
 
-        var processesChanged = AudioCaptureService.ProcessesInfo
+        var processesChanged = OutputAudioDeviceService.Instance.AllAudioSessions
             .ToObservableChangeSet()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Select(_ => Unit.Default);
@@ -147,7 +144,7 @@ public sealed class OverlayWindowViewModel : ReactiveObject
 
         processesChanged.Merge(processesFilterChanged)
             .Select(_ => FilterProcesses())
-            .ToProperty(this, x => x.FilteredProcesses, out _filteredProcesses);
+            .ToProperty(this, x => x.FilteredAudioSessions, out _filteredAudioSessions);
     }
 
     ~OverlayWindowViewModel()
@@ -165,26 +162,26 @@ public sealed class OverlayWindowViewModel : ReactiveObject
         }
     }
 
-    private ObservableCollection<AudioDeviceInfo> FilterAudioDevices()
+    private ObservableCollection<InputAudioDevice> FilterAudioDevices()
     {
-        var filtered = AudioDeviceService.Instance.ActiveAudioDevices
+        var filtered = InputAudioDeviceService.Instance.ActiveInputAudioDevices
             .Where(device =>
                 string.IsNullOrWhiteSpace(DevicesFilterText) ||
                 device.Name.Contains(DevicesFilterText, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        return new ObservableCollection<AudioDeviceInfo>(filtered);
+        return new ObservableCollection<InputAudioDevice>(filtered);
     }
 
-    private ObservableCollection<ProcessInfo> FilterProcesses()
+    private ObservableCollection<AudioSession> FilterProcesses()
     {
-        var filtered = AudioCaptureService.ProcessesInfo
+        var filtered = OutputAudioDeviceService.Instance.AllAudioSessions
             .Where(process =>
                 string.IsNullOrWhiteSpace(ProcessesFilterText) ||
-                process.Name.Contains(ProcessesFilterText, StringComparison.OrdinalIgnoreCase))
+                process.DisplayName.Contains(ProcessesFilterText, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        return new ObservableCollection<ProcessInfo>(filtered);
+        return new ObservableCollection<AudioSession>(filtered);
     }
 
     private async Task StartInstantReplayAsync()
@@ -193,18 +190,27 @@ public sealed class OverlayWindowViewModel : ReactiveObject
 
         await Task.Run(() =>
         {
-            var activeRecordingProcesses =
-                AudioCaptureService.ProcessesInfo.Where(p => p.IsChecked).ToList();
-            var activeRecordingAudioDevices = AudioDeviceService.Instance.ActiveAudioDevices
-                .Where(ad => ad.IsChecked)
-                .Select(ad => ad.ToNativeAudioDeviceInfo()).ToList();
+            var activeRecordingInputDevices = InputAudioDeviceService.Instance.ActiveInputAudioDevices
+                .Where(d => d.IsChecked)
+                .Select(d => d.ToAudioDeviceInfo()).ToArray();
+            var activeRecordingOutputDevices = OutputAudioDeviceService.Instance.ActiveOutputAudioDevices
+                .Where(s => s.IsChecked)
+                .Select(s => s.ToAudioDeviceInfo()).ToArray();
+            var activeRecordingAudioSessions = OutputAudioDeviceService.Instance.AllAudioSessions
+                .Where(s => s.IsChecked)
+                .Select(s => s.ToAudioSessionInfo()).ToArray();
 
-            if (activeRecordingProcesses.Count == 0 && activeRecordingAudioDevices.Count == 0)
+            if (activeRecordingOutputDevices.Length == 0 && activeRecordingInputDevices.Length == 0 &&
+                activeRecordingAudioSessions.Length == 0)
+            {
                 Dispatcher.UIThread.Post(() => _ = StopInstantReplayAsync());
+                return;
+            }
 
-            var captureId = AudioCaptureService.StartCapture(activeRecordingProcesses, activeRecordingAudioDevices);
+            var captureId = AudioCaptureService.StartCapture(activeRecordingInputDevices, activeRecordingOutputDevices, activeRecordingAudioSessions);
             _activeInstantReplayProcessor =
-                new AudioDataProcessor(captureId, activeRecordingProcesses, activeRecordingAudioDevices,
+                new AudioDataProcessor(captureId, activeRecordingInputDevices, activeRecordingOutputDevices,
+                    activeRecordingAudioSessions,
                     isInstantReplayMode: true,
                     instantReplayDuration: SettingsDialogViewModel.Instance.InstantReplayDurationSeconds);
 
@@ -261,18 +267,26 @@ public sealed class OverlayWindowViewModel : ReactiveObject
 
         await Task.Run(() =>
         {
-            var activeRecordingProcesses =
-                AudioCaptureService.ProcessesInfo.Where(p => p.IsChecked).ToList();
-            var activeRecordingAudioDevices = AudioDeviceService.Instance.ActiveAudioDevices
-                .Where(ad => ad.IsChecked)
-                .Select(ad => ad.ToNativeAudioDeviceInfo()).ToList();
+            var activeRecordingInputDevices = InputAudioDeviceService.Instance.ActiveInputAudioDevices
+                .Where(d => d.IsChecked)
+                .Select(d => d.ToAudioDeviceInfo()).ToArray();
+            var activeRecordingOutputDevices = OutputAudioDeviceService.Instance.ActiveOutputAudioDevices
+                .Where(s => s.IsChecked)
+                .Select(s => s.ToAudioDeviceInfo()).ToArray();
+            var activeRecordingAudioSessions = OutputAudioDeviceService.Instance.AllAudioSessions
+                .Where(s => s.IsChecked)
+                .Select(s => s.ToAudioSessionInfo()).ToArray();
 
-            if (activeRecordingProcesses.Count == 0 && activeRecordingAudioDevices.Count == 0)
+            if (activeRecordingInputDevices.Length == 0 && activeRecordingOutputDevices.Length == 0 &&
+                activeRecordingAudioSessions.Length == 0)
+            {
                 Dispatcher.UIThread.Post(() => _ = StopCaptureAsync());
+                return;
+            }
 
-            var captureId = AudioCaptureService.StartCapture(activeRecordingProcesses, activeRecordingAudioDevices);
+            var captureId = AudioCaptureService.StartCapture(activeRecordingInputDevices, activeRecordingOutputDevices, activeRecordingAudioSessions);
             _activeRecordingProcessor =
-                new AudioDataProcessor(captureId, activeRecordingProcesses, activeRecordingAudioDevices);
+                new AudioDataProcessor(captureId, activeRecordingInputDevices, activeRecordingOutputDevices, activeRecordingAudioSessions);
             var ok = _activeRecordingProcessor.Start();
             if (!ok)
                 Dispatcher.UIThread.Post(() => _ = StopCaptureAsync());

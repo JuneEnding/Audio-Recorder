@@ -1,14 +1,12 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using Bitmap = Avalonia.Media.Imaging.Bitmap;
 
 namespace AudioRecorder.Core.Services;
 
-public static class NativeMethods
+internal static class NativeMethods
 {
     private const string SndVolDllPath = @"%SystemRoot%\System32\SndVolSSO.dll";
     private const int IconIndex = 101;
@@ -32,11 +30,11 @@ public static class NativeMethods
         return new Bitmap(memoryStream);
     }
 
-    public static Bitmap? GetIconForProcess(int processId)
+    public static Bitmap? GetIconForProcess(uint processId)
     {
         try
         {
-            var proc = Process.GetProcessById(processId);
+            var proc = Process.GetProcessById((int)processId);
             var path = proc.MainModule?.FileName;
             var iconHandle = ExtractAssociatedIcon(IntPtr.Zero, new StringBuilder(path), out var index);
 

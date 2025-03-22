@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Linq;
 
 namespace AudioRecorder.Core;
 
-public class RangedObservableCollection<T> : ObservableCollection<T>
+internal sealed class RangedObservableCollection<T> : ObservableCollection<T>
 {
     private bool _suppressNotification;
 
