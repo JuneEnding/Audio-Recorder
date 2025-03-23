@@ -1,0 +1,21 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+	<Design.PreviewWith>
+		<Border Padding="20">
+			<!-- Add Controls for Previewer Here -->
+		</Border>
+	</Design.PreviewWith>
+
+	<Style Selector="Button.MenuButton">
+        <Setter Property="BorderThickness" Value="4"/>
+		<Setter Property="BorderBrush" Value="{DynamicResource MenuBarItemBorderBrush}"/>
+		<Style Selector="^:pointerover">
+			<Setter Property="BorderThickness" Value="4"/>
+			<Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+		</Style>
+	</Style>
+
+	<Style Selector=":is(Button)">
+        <Setter Property="Cursor" Value="Hand" />
+	</Style>
+</Styles>

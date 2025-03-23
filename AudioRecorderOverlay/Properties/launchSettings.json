@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AudioRecorderOverlay": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

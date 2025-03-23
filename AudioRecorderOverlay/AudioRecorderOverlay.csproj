@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Folder Include="Models\" />
+		<AvaloniaResource Include="Assets\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="Assets\AudioRecorderIcon.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="11.2.5" />
+		<PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
+		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.5" />
+		<PackageReference Include="Avalonia.ReactiveUI" Version="11.2.5" />
+		<PackageReference Include="FluentAvaloniaUI" Version="2.3.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\AudioRecorder.Core\AudioRecorder.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Views\OverlayWindow.axaml.cs">
+			<DependentUpon>OverlayWindow.axaml</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="copy /Y &quot;$(SolutionDir)Libs\AudioCaptureLibrary.dll&quot; &quot;$(OutDir)&quot;" />
+	</Target>
+
+</Project>

@@ -1,0 +1,115 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+					xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+	<ControlTheme x:Key="BorderedMenuBarItemStyle" TargetType="MenuItem">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Background" Value="{DynamicResource MenuBarItemBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource MenuBarItemBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="4"/>
+        <Setter Property="CornerRadius" Value="0" />
+		<!-- Narrow padding should be used for mouse input, when non-narrow one should be used for touch input in future.  -->
+		<!--<Setter Property="Padding" Value="{DynamicResource MenuFlyoutItemThemePaddingNarrow}" />-->
+		<Setter Property="Margin" Value="0" />
+		<Setter Property="Padding" Value="{DynamicResource MenuBarItemButtonPadding}" />
+		<Setter Property="Template">
+			<ControlTemplate>
+				<Border Background="{TemplateBinding Background}">
+					<Border Name="PART_LayoutRoot"
+					        Background="{TemplateBinding Background}"
+					        BorderBrush="{TemplateBinding BorderBrush}"
+					        BorderThickness="{TemplateBinding BorderThickness}"
+					        CornerRadius="{TemplateBinding CornerRadius}">
+						<Panel>
+							<ContentPresenter Name="PART_HeaderPresenter"
+							                  Content="{TemplateBinding Header}"
+							                  VerticalAlignment="Center"
+							                  HorizontalAlignment="Stretch"
+                                              RecognizesAccessKey="True"
+							                  Margin="{TemplateBinding Padding}">
+								<ContentPresenter.DataTemplates>
+									<DataTemplate DataType="system:String">
+										<AccessText Text="{Binding}" />
+									</DataTemplate>
+								</ContentPresenter.DataTemplates>
+							</ContentPresenter>
+
+                            <Popup Name="PART_Popup"
+                                   Placement="BottomEdgeAlignedLeft"
+                                   HorizontalOffset="-4"
+                                   WindowManagerAddShadowHint="False"
+                                   MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                                   IsLightDismissEnabled="True"
+                                   IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}"
+                                   OverlayInputPassThroughElement="{Binding $parent[Menu]}">
+								<Border Background="Transparent"
+								        BorderThickness="0"
+								        MaxWidth="{DynamicResource FlyoutThemeMaxWidth}"
+								        MinHeight="{DynamicResource MenuFlyoutThemeMinHeight}"
+								        HorizontalAlignment="Stretch"
+								        CornerRadius="{DynamicResource OverlayCornerRadius}"
+								        BackgroundSizing="InnerBorderEdge">
+									<ScrollViewer>
+										<ItemsPresenter Name="PART_ItemsPresenter"
+								                        ItemsPanel="{TemplateBinding ItemsPanel}"
+								                        Grid.IsSharedSizeScope="True" />
+									</ScrollViewer>
+								</Border>
+                            </Popup>
+						</Panel>
+					</Border>
+                </Border>
+            </ControlTemplate>
+		</Setter>
+
+		<Style Selector="^:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Style Selector="^ /template/ Border#PART_LayoutRoot">
+                <Setter Property="Background" Value="{DynamicResource MenuFlyoutItemBackgroundPointerOver}" />
+            </Style>
+            <Style Selector="^ /template/ ContentPresenter#PART_HeaderPresenter">
+                <Setter Property="Foreground" Value="{DynamicResource MenuFlyoutItemForegroundPointerOver}" />
+            </Style>
+        </Style>
+
+		<Style Selector="^:selected">
+            <Setter Property="BorderThickness" Value="4"/>
+			<Setter Property="Padding" Value="6 0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+			<Style Selector="^ /template/ Border#PART_LayoutRoot">
+				<Setter Property="Background" Value="{DynamicResource MenuFlyoutItemBackgroundPointerOver}" />
+			</Style>
+			<Style Selector="^ /template/ ContentPresenter#PART_HeaderPresenter">
+				<Setter Property="Foreground" Value="{DynamicResource MenuFlyoutItemForegroundPointerOver}" />
+			</Style>
+		</Style>
+
+        <Style Selector="^:open">
+            <Setter Property="BorderThickness" Value="0 4 0 0"/>
+            <Setter Property="Padding" Value="0 -4 0 0"/>
+            <Style Selector="^ /template/ Popup#PART_Popup">
+                <Setter Property="HorizontalOffset" Value="0"/>
+                <Style Selector="^ /template/ ItemsPresenter#PART_ItemsPresenter">
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Style>
+        </Style>
+
+		<!--  Listen for PART_LayoutRoot:pointerover, so it will not be triggered when subitem is pressed  -->
+		<Style Selector="^:pressed /template/ Border#PART_LayoutRoot:pointerover">
+			<Setter Property="Background" Value="{DynamicResource MenuFlyoutItemBackgroundPressed}" />
+			<Style Selector="^ ContentPresenter#PART_HeaderPresenter">
+				<Setter Property="Foreground" Value="{DynamicResource MenuFlyoutItemForegroundPressed}" />
+			</Style>
+		</Style>
+
+		<Style Selector="^:disabled">
+			<Style Selector="^ /template/ Border#PART_LayoutRoot">
+				<Setter Property="Background" Value="{DynamicResource MenuFlyoutItemBackgroundDisabled}" />
+			</Style>
+			<Style Selector="^ /template/ ContentPresenter#PART_HeaderPresenter">
+				<Setter Property="Foreground" Value="{DynamicResource MenuFlyoutItemForegroundDisabled}" />
+			</Style>
+		</Style>
+    </ControlTheme>
+</ResourceDictionary>
