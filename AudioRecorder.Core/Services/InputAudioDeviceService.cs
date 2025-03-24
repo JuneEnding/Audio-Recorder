@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using AudioRecorder.Core.Data;
 using System.Runtime.InteropServices;
+using ReactiveUI;
 
 namespace AudioRecorder.Core.Services;
 
@@ -15,6 +16,7 @@ internal sealed class InputAudioDeviceService
     [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable")]
     private static DeviceStateChangedCallback? _deviceStateChangedCallback;
 
+    // ReSharper disable once InconsistentNaming
     private static readonly Lazy<InputAudioDeviceService> _instance = new(() => new InputAudioDeviceService());
     public static InputAudioDeviceService Instance => _instance.Value;
 
@@ -28,7 +30,8 @@ internal sealed class InputAudioDeviceService
         {
             _deviceStateChangedCallback = OnDeviceStateChanged;
             RegisterInputNotificationCallback(_deviceStateChangedCallback);
-            var devices = GetActiveAudioDevices();
+
+            var devices = GetActiveAudioDevices().ToArray();
             ActiveInputAudioDevices.AddRange(devices);
 
             Logger.LogInfo("Listening for audio device changes...");
@@ -79,7 +82,8 @@ internal sealed class InputAudioDeviceService
         for (var i = 0; i < count; ++i)
         {
             var devicePtr = IntPtr.Add(devicesPtr, i * structSize);
-            devices[i] = new InputAudioDevice(Marshal.PtrToStructure<InputAudioDeviceInfo>(devicePtr).DeviceInfo);
+            devices[i] = new InputAudioDevice(new InputAudioDeviceInfo
+                { DeviceInfo = Marshal.PtrToStructure<InputAudioDeviceInfo>(devicePtr).DeviceInfo });
         }
 
         FreeInputAudioDevicesArray(devicesPtr, count);
@@ -94,7 +98,8 @@ internal sealed class InputAudioDeviceService
         if (audioDevicePtr == IntPtr.Zero)
             return null;
 
-        var device = new InputAudioDevice(Marshal.PtrToStructure<InputAudioDeviceInfo>(audioDevicePtr).DeviceInfo);
+        var device = new InputAudioDevice(new InputAudioDeviceInfo
+            { DeviceInfo = Marshal.PtrToStructure<InputAudioDeviceInfo>(audioDevicePtr).DeviceInfo });
 
         FreeInputAudioDevice(audioDevicePtr);
 

@@ -3,6 +3,7 @@ using ReactiveUI;
 using System.Runtime.InteropServices;
 using Avalonia.Media.Imaging;
 using DynamicData;
+using ProtoBuf;
 
 namespace AudioRecorder.Core.Data;
 
@@ -21,25 +22,38 @@ internal struct AudioSessionInfo
     public string SessionInstanceIdentifier;
 }
 
+[ProtoContract]
 internal sealed class AudioSession : ReactiveObject
 {
+    [ProtoMember(1)]
     public string SessionId { get; }
+    [ProtoIgnore]
     public string SessionInstanceIdentifier { get; }
+    [ProtoIgnore]
     public uint PipeId { get; }
+    [ProtoIgnore]
     public uint ProcessId => PipeId;
+    [ProtoIgnore]
     public Bitmap? Icon { get; }
+    [ProtoIgnore]
     public uint SampleRate { get; }
+    [ProtoIgnore]
     public ushort BitsPerSample { get; }
+    [ProtoIgnore]
     public ushort Channels { get; }
+    [ProtoIgnore]
 
     private string _displayName = string.Empty;
+    [ProtoIgnore]
     public string DisplayName
     {
         get => _displayName;
         set => this.RaiseAndSetIfChanged(ref _displayName, value);
     }
 
+    [ProtoIgnore]
     private bool _isChecked;
+    [ProtoMember(2)]
     public bool IsChecked
     {
         get => _isChecked;
@@ -58,6 +72,12 @@ internal sealed class AudioSession : ReactiveObject
 
         Icon = ResourceHelper.GetBitmapFromIconPath(sessionInfo.IconPath);
         Icon ??= NativeMethods.GetIconForProcess(ProcessId);
+    }
+
+    private AudioSession()
+    {
+        SessionId = "";
+        SessionInstanceIdentifier = "";
     }
 
     public static IEnumerable<AudioSession> FromOutputAudioDeviceInfo(OutputAudioDeviceInfo outputDevice)

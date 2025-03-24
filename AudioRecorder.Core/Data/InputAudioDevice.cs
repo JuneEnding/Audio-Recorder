@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using ProtoBuf;
 
 namespace AudioRecorder.Core.Data;
 
@@ -8,6 +9,10 @@ internal struct InputAudioDeviceInfo
     public AudioDeviceInfo DeviceInfo;
 }
 
-internal sealed class InputAudioDevice(AudioDeviceInfo deviceInfo) : AudioDevice(deviceInfo)
+[ProtoContract]
+internal sealed class InputAudioDevice : AudioDevice
 {
+    private InputAudioDevice() { }
+
+    public InputAudioDevice(InputAudioDeviceInfo deviceInfo) : base(deviceInfo.DeviceInfo) { }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using ProtoBuf;
 
 namespace AudioRecorder.Core.Data;
 
@@ -10,7 +11,24 @@ internal struct OutputAudioDeviceInfo
     public int SessionCount;
 }
 
-internal sealed class OutputAudioDevice(OutputAudioDeviceInfo deviceInfo) : AudioDevice(deviceInfo.DeviceInfo)
+[ProtoContract]
+internal sealed class OutputAudioDevice : AudioDevice
 {
-    public readonly RangedObservableCollection<AudioSession> AudioSessions = [.. AudioSession.FromOutputAudioDeviceInfo(deviceInfo)];
+    private OutputAudioDevice()
+    {
+        AudioSessions = [];
+    }
+
+    public OutputAudioDevice(OutputAudioDeviceInfo outputDeviceInfo) : base(outputDeviceInfo.DeviceInfo)
+    {
+        AudioSessions = [.. AudioSession.FromOutputAudioDeviceInfo(outputDeviceInfo)];
+    }
+
+    public OutputAudioDevice(AudioDeviceInfo deviceInfo, IEnumerable<AudioSession> sessions) : base(deviceInfo)
+    {
+        AudioSessions = [.. sessions];
+    }
+
+    [ProtoMember(3)]
+    public readonly RangedObservableCollection<AudioSession> AudioSessions;
 }

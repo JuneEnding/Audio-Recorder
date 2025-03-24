@@ -7,6 +7,8 @@ internal static class AudioCaptureService
 {
     public static long StartCapture(AudioDeviceInfo[] inputDevices, AudioDeviceInfo[] outputDevices, AudioSessionInfo[] sessions)
     {
+        AudioStateService.Instance.CommitSelection();
+
         return StartCapture(inputDevices, inputDevices.Length, outputDevices, outputDevices.Length, sessions, sessions.Length);
     }
 

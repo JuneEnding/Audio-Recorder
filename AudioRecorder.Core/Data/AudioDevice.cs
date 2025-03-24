@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using ProtoBuf;
 using ReactiveUI;
 
 namespace AudioRecorder.Core.Data;
@@ -16,22 +17,32 @@ internal struct AudioDeviceInfo
     public ushort Channels;
 }
 
+[ProtoContract]
+[ProtoInclude(100, typeof(InputAudioDevice))]
+[ProtoInclude(101, typeof(OutputAudioDevice))]
 internal class AudioDevice : ReactiveObject
 {
+    [ProtoIgnore]
     public uint PipeId { get; }
+    [ProtoMember(1)]
     public string Id { get; }
+    [ProtoIgnore]
     public uint SampleRate { get; }
+    [ProtoIgnore]
     public ushort BitsPerSample { get; }
+    [ProtoIgnore]
     public ushort Channels { get; }
-
+    [ProtoIgnore]
     private string _name = string.Empty;
+    [ProtoIgnore]
     public string Name
     {
         get => _name;
         set => this.RaiseAndSetIfChanged(ref _name, value);
     }
-
+    [ProtoIgnore]
     private bool _isChecked;
+    [ProtoMember(2)]
     public bool IsChecked
     {
         get => _isChecked;
@@ -46,6 +57,11 @@ internal class AudioDevice : ReactiveObject
         SampleRate = deviceInfo.SampleRate;
         BitsPerSample = deviceInfo.BitsPerSample;
         Channels = deviceInfo.Channels;
+    }
+
+    protected AudioDevice()
+    {
+        Id = "";
     }
 
     public AudioDeviceInfo ToAudioDeviceInfo() =>

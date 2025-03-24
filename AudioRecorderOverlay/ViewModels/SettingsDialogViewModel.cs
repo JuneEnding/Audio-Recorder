@@ -21,6 +21,7 @@ internal sealed class SettingsDialogViewModel : ReactiveObject
     private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
     private readonly FluentAvaloniaTheme? _faTheme;
 
+    // ReSharper disable once InconsistentNaming
     private static readonly Lazy<SettingsDialogViewModel> _instance = new(() => new SettingsDialogViewModel());
     public static SettingsDialogViewModel Instance => _instance.Value;
 

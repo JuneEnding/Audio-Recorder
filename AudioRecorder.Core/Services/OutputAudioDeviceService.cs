@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using DynamicData;
 using System.Collections.ObjectModel;
 using DynamicData.Binding;
+using ReactiveUI;
 
 namespace AudioRecorder.Core.Services;
 
@@ -23,10 +24,11 @@ internal sealed class OutputAudioDeviceService
 
     private static SessionStateChangedCallback? _sessionStateChangedCallback;
 
+    // ReSharper disable once InconsistentNaming
     private static readonly Lazy<OutputAudioDeviceService> _instance = new(() => new OutputAudioDeviceService());
     public static OutputAudioDeviceService Instance => _instance.Value;
 
-    public readonly RangedObservableCollection<OutputAudioDevice> ActiveOutputAudioDevices = new();
+    public readonly RangedObservableCollection<OutputAudioDevice> ActiveOutputAudioDevices = [];
 
     private readonly ReadOnlyObservableCollection<AudioSession> _allAudioSessions;
     public ReadOnlyObservableCollection<AudioSession> AllAudioSessions => _allAudioSessions;
@@ -47,6 +49,7 @@ internal sealed class OutputAudioDeviceService
             _deviceStateChangedCallback = OnDeviceStateChanged;
             _sessionStateChangedCallback = OnSessionStateChanged;
             RegisterOutputNotificationCallback(_deviceStateChangedCallback);
+
             var audioDevices = GetOutputAudioDevices().ToArray();
             ActiveOutputAudioDevices.AddRange(audioDevices);
 

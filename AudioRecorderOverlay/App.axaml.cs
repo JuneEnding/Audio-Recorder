@@ -1,4 +1,5 @@
 using System;
+using AudioRecorder.Core.Services;
 using AudioRecorderOverlay.ViewModels;
 using AudioRecorderOverlay.Views;
 using Avalonia;
@@ -59,6 +60,8 @@ internal sealed partial class App : Application
                 }
             }
         };
+
+        AudioStateService.Initialize();
     }
 
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
