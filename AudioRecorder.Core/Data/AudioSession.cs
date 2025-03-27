@@ -10,7 +10,7 @@ namespace AudioRecorder.Core.Data;
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
 internal struct AudioSessionInfo
 {
-    public uint PipeId;
+    public uint ProcessId;
     [MarshalAs(UnmanagedType.BStr)]
     public string DisplayName;
     [MarshalAs(UnmanagedType.BStr)]
@@ -30,9 +30,7 @@ internal sealed class AudioSession : ReactiveObject
     [ProtoIgnore]
     public string SessionInstanceIdentifier { get; }
     [ProtoIgnore]
-    public uint PipeId { get; }
-    [ProtoIgnore]
-    public uint ProcessId => PipeId;
+    public uint ProcessId { get; }
     [ProtoIgnore]
     public Bitmap? Icon { get; }
     [ProtoIgnore]
@@ -64,7 +62,7 @@ internal sealed class AudioSession : ReactiveObject
     {
         SessionId = sessionInfo.SessionIdentifier;
         SessionInstanceIdentifier = sessionInfo.SessionInstanceIdentifier;
-        PipeId = sessionInfo.PipeId;
+        ProcessId = sessionInfo.ProcessId;
         DisplayName = sessionInfo.DisplayName;
         SampleRate = deviceInfo.SampleRate;
         BitsPerSample = deviceInfo.BitsPerSample;
@@ -99,9 +97,9 @@ internal sealed class AudioSession : ReactiveObject
     public AudioSessionInfo ToAudioSessionInfo() =>
         new()
         {
-            PipeId = PipeId,
             DisplayName = DisplayName,
             SessionInstanceIdentifier = SessionInstanceIdentifier,
-            SessionIdentifier = SessionId
+            SessionIdentifier = SessionId,
+            ProcessId = ProcessId
         };
 }

@@ -1,4 +1,4 @@
-﻿using System.IO.Pipes;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 using AudioRecorder.Core.Data;
 
@@ -6,12 +6,7 @@ namespace AudioRecorder.Core.Services;
 
 internal sealed class AudioDataProcessor
 {
-    private const string PipeNameTemplate = "AudioDataPipe_{0}_{1}";
-    private const string FileNameTemplate = "{0}_{1}_{2}.wav";
-    private const int PipeTimeout = 2000;
-
     private readonly bool _isInstantReplayMode;
-    private readonly int _instantReplayDuration;
     private readonly AudioData[] _audioDataList;
 
     public long CaptureId { get; }
@@ -21,67 +16,50 @@ internal sealed class AudioDataProcessor
         int instantReplayDuration = 0)
     {
         CaptureId = captureId;
+
         _audioDataList = inputDevices
             .Select(ad => new AudioData(ad, captureId, AudioTargetType.AudioDevice, isInstantReplayMode,
                 instantReplayDuration))
             .Concat(outputDevices.Select(ad => new AudioData(ad, captureId, AudioTargetType.AudioDevice,
                 isInstantReplayMode, instantReplayDuration)))
             .Concat(sessions.Select(session =>
-                new AudioData(captureId, AudioTargetType.Process, isInstantReplayMode, instantReplayDuration)
-                    { PipeId = session.PipeId, Name = session.DisplayName })).ToArray();
+                new AudioData(session, captureId, AudioTargetType.Process, isInstantReplayMode, instantReplayDuration)))
+            .ToArray();
+
         _isInstantReplayMode = isInstantReplayMode;
-        _instantReplayDuration = instantReplayDuration;
     }
 
     public bool Start()
     {
-        var threadsToStart = new List<Thread>();
-
-        foreach (var audioData in _audioDataList)
+        try
         {
-            var pipeName = string.Format(PipeNameTemplate, audioData.PipeId, CaptureId);
-
-            var client = new NamedPipeClientStream(".", pipeName, PipeDirection.In);
-            audioData.PipeClient = client;
-
-            try
+            AudioDataInterop.SetAudioDataCallback((captureId, sourceIdPtr, dataPtr, length) =>
             {
-                client.Connect(PipeTimeout);
-            }
-            catch (TimeoutException)
-            {
-                Logger.LogError("Timeout while trying to connect.");
-                return false;
-            }
+                var sourceId = Marshal.PtrToStringUni(sourceIdPtr);
+                if (sourceId == null)
+                    return;
 
-            var thread = new Thread(() => ProcessAudio(audioData));
-            audioData.ProcessingThread = thread;
-            threadsToStart.Add(thread);
+                var audioData = _audioDataList
+                    .FirstOrDefault(ad => ad.CaptureId == captureId && ad.SourceId == sourceId);
+
+                var buffer = new byte[length];
+                Marshal.Copy(dataPtr, buffer, 0, length);
+
+                audioData?.AddData(buffer);
+            });
         }
-
-        foreach (var thread in threadsToStart)
-            thread.Start();
+        catch (Exception ex)
+        {
+            Logger.LogError($"Unable to set audio data callback: {ex.Message}");
+            return false;
+        }
 
         return true;
     }
 
     public void Stop()
     {
-        foreach (var audioData in _audioDataList)
-        {
-            if (audioData.ProcessingThread != null && audioData.ProcessingThread.IsAlive)
-            {
-                audioData.CancelRequested = true;
-                audioData.ProcessingThread.Interrupt();
-                try
-                {
-                    audioData.ProcessingThread.Join();
-                }
-                catch (ThreadInterruptedException) { }
-            }
-
-            audioData.PipeClient?.Close();
-        }
+        AudioDataInterop.UnsetAudioDataCallback();
     }
 
     public void SetAllInstantReplayDuration(int durationSeconds)
@@ -91,62 +69,6 @@ internal sealed class AudioDataProcessor
 
         foreach (var audioData in _audioDataList)
             audioData.SetInstantReplayBufferSize(durationSeconds);
-    }
-
-    private async void ProcessAudio(AudioData audioData)
-    {
-        if (audioData.PipeClient == null)
-            return;
-
-        using var reader = new BinaryReader(audioData.PipeClient);
-        var buffer = new byte[4096];
-
-        audioData.ClearBuffer();
-
-        try
-        {
-            while (audioData.PipeClient.IsConnected && !audioData.CancelRequested)
-            {
-                var bytesRead = await ReadFromPipeWithTimeoutAsync(reader, buffer, PipeTimeout);
-                if (bytesRead > 0)
-                {
-                    var data = buffer.Take(bytesRead).ToArray();
-                    audioData.AddData(data);
-                }
-            }
-        }
-        catch (EndOfStreamException)
-        {
-            Logger.LogError("Stream closed.");
-        }
-        catch (IOException ex)
-        {
-            Logger.LogError($"An IO exception occured: {ex}");
-        }
-    }
-
-    private async Task<int> ReadFromPipeWithTimeoutAsync(BinaryReader reader, byte[] buffer, int timeoutMilliseconds)
-    {
-        var readTask = Task.Run(() =>
-        {
-            try
-            {
-                return reader.Read(buffer, 0, buffer.Length);
-            }
-            catch (ObjectDisposedException)
-            {
-                // ignored
-            }
-
-            return 0;
-        });
-
-        var completedTask = await Task.WhenAny(readTask, Task.Delay(timeoutMilliseconds));
-
-        if (completedTask == readTask)
-            return await readTask;
-
-        return 0;
     }
 
     public void SaveAllAudioData(string directoryName)

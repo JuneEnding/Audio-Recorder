@@ -3,7 +3,6 @@
 #include <Windows.h>
 
 struct AudioDeviceInfo {
-    DWORD PipeId;
     BSTR Id;
     BSTR Name;
     DWORD SampleRate;
@@ -12,7 +11,7 @@ struct AudioDeviceInfo {
 };
 
 struct AudioSessionInfo {
-    DWORD PipeId;
+    DWORD ProcessId;
     BSTR DisplayName;
     BSTR IconPath;
     BOOL IsSystemSession;

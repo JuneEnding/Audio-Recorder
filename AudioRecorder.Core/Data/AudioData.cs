@@ -1,6 +1,4 @@
-﻿using System.IO.Pipes;
-
-namespace AudioRecorder.Core.Data;
+﻿namespace AudioRecorder.Core.Data;
 
 internal enum AudioTargetType
 {
@@ -17,15 +15,14 @@ internal sealed class AudioData
 
     private int _instantReplayBufferSize;
 
-    public NamedPipeClientStream? PipeClient { get; set; }
-    public uint PipeId { get; init; }
+    public string SourceId { get; init; }
     public long CaptureId { get; init; }
     public uint SampleRate { get; } = 44100;
     public ushort BitsPerSample { get; } = 16;
     public ushort Channels { get; } = 2;
     public Thread? ProcessingThread { get; set; }
     public bool CancelRequested { get; set; }
-    public string Name { get; init; } = string.Empty;
+    public string Name { get; init; }
     public AudioTargetType Type { get; }
     public byte[] Buffer
     {
@@ -40,9 +37,12 @@ internal sealed class AudioData
         }
     }
 
-    public AudioData(long captureId, AudioTargetType type, bool isInstantReplayMode = false, int replayDurationSeconds = 0)
+    public AudioData(long captureId, string sourceId, string name, AudioTargetType type,
+        bool isInstantReplayMode = false, int replayDurationSeconds = 0)
     {
         CaptureId = captureId;
+        SourceId = sourceId;
+        Name = name;
         Type = type;
         _isInstantReplayMode = isInstantReplayMode;
 
@@ -50,15 +50,18 @@ internal sealed class AudioData
             SetInstantReplayBufferSize(replayDurationSeconds);
     }
 
-    public AudioData(AudioDeviceInfo deviceInfo, long captureId, AudioTargetType type, bool isInstantReplayMode = false,
-        int replayDurationSeconds = 0) : this(captureId, type, isInstantReplayMode, replayDurationSeconds)
+    public AudioData(AudioDeviceInfo deviceInfo, long captureId, AudioTargetType type,
+        bool isInstantReplayMode = false, int replayDurationSeconds = 0) : this(captureId, deviceInfo.Id,
+        deviceInfo.Name, type, isInstantReplayMode, replayDurationSeconds)
     {
-        PipeId = deviceInfo.PipeId;
         SampleRate = deviceInfo.SampleRate;
         BitsPerSample = deviceInfo.BitsPerSample;
         Channels = deviceInfo.Channels;
-        Name = deviceInfo.Name;
     }
+
+    public AudioData(AudioSessionInfo sessionInfo, long captureId, AudioTargetType type,
+        bool isInstantReplayMode = false, int replayDurationSeconds = 0) : this(captureId,
+        sessionInfo.SessionIdentifier, sessionInfo.DisplayName, type, isInstantReplayMode, replayDurationSeconds) { }
 
     public void AddData(IEnumerable<byte> data)
     {

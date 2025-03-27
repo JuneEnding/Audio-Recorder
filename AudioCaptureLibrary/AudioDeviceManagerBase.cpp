@@ -104,7 +104,6 @@ std::optional<AudioDeviceInfo> AudioDeviceManagerBase::GetDeviceInfo(wil::com_pt
     }
 
     AudioDeviceInfo deviceInfo = {
-        HashDeviceId(deviceId.get()),
         SysAllocString(deviceId.get()),
         SysAllocString(name.pwszVal),
         waveFormat->nSamplesPerSec,

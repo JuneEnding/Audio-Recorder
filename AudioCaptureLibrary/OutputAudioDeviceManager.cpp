@@ -104,7 +104,7 @@ std::vector<AudioSessionInfo> OutputAudioDeviceManager::GetSessions(wil::com_ptr
         }
 
         AudioSessionInfo sessionInfo = {};
-        sessionInfo.PipeId = pid;
+        sessionInfo.ProcessId = pid;
 
         LPWSTR displayName = nullptr;
         if (!SUCCEEDED(sessionControl2->GetDisplayName(&displayName)) && displayName != nullptr) {

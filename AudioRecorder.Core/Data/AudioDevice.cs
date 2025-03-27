@@ -7,7 +7,6 @@ namespace AudioRecorder.Core.Data;
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
 internal struct AudioDeviceInfo
 {
-    public uint PipeId;
     [MarshalAs(UnmanagedType.BStr)]
     public string Id;
     [MarshalAs(UnmanagedType.BStr)]
@@ -22,8 +21,6 @@ internal struct AudioDeviceInfo
 [ProtoInclude(101, typeof(OutputAudioDevice))]
 internal class AudioDevice : ReactiveObject
 {
-    [ProtoIgnore]
-    public uint PipeId { get; }
     [ProtoMember(1)]
     public string Id { get; }
     [ProtoIgnore]
@@ -51,7 +48,6 @@ internal class AudioDevice : ReactiveObject
 
     public AudioDevice(AudioDeviceInfo deviceInfo)
     {
-        PipeId = deviceInfo.PipeId;
         Id = deviceInfo.Id;
         Name = string.IsNullOrEmpty(deviceInfo.Name) ? "Unknown" : deviceInfo.Name;
         SampleRate = deviceInfo.SampleRate;
@@ -67,7 +63,6 @@ internal class AudioDevice : ReactiveObject
     public AudioDeviceInfo ToAudioDeviceInfo() =>
         new()
         {
-            PipeId = PipeId,
             Id = Id,
             Name = Name,
             SampleRate = SampleRate,

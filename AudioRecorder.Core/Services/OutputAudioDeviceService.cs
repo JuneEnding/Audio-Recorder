@@ -37,7 +37,7 @@ internal sealed class OutputAudioDeviceService
 
     private OutputAudioDeviceService()
     {
-        ActiveOutputAudioDevices // TODO: проверить обновление UI при изменении устройств и сессий у устройств
+        ActiveOutputAudioDevices
             .ToObservableChangeSet()
             .AutoRefresh()
             .TransformMany(device => device.AudioSessions)
@@ -111,23 +111,30 @@ internal sealed class OutputAudioDeviceService
 
         var existing = device.AudioSessions.FirstOrDefault(s => s.SessionId == sessionId);
 
-        if (newState == AudioSessionStateActive)
+        switch (newState)
         {
-            if (existing != null) return;
-            Logger.LogInfo($"New session detected: {sessionId} for device {deviceId}");
-
-            var updatedDevice = GetOutputAudioDevice(deviceId);
-            var updatedSession = updatedDevice?.AudioSessions.FirstOrDefault(s => s.SessionId == sessionId);
-            if (updatedSession != null)
+            case AudioSessionStateActive when existing != null:
+                return;
+            case AudioSessionStateActive:
             {
-                device.AudioSessions.Add(updatedSession);
+                Logger.LogInfo($"New session detected: {sessionId} for device {deviceId}");
+
+                var updatedDevice = GetOutputAudioDevice(deviceId);
+                var updatedSession = updatedDevice?.AudioSessions.FirstOrDefault(s => s.SessionId == sessionId);
+                if (updatedSession != null)
+                {
+                    device.AudioSessions.Add(updatedSession);
+                }
+
+                break;
             }
-        }
-        else
-        {
-            if (existing == null) return;
-            Logger.LogInfo($"Session removed: {sessionId} from device {deviceId}");
-            device.AudioSessions.Remove(existing);
+            case AudioSessionStateExpired when existing == null:
+                return;
+            case AudioSessionStateExpired:
+                Logger.LogInfo($"Session removed: {sessionId} from device {deviceId}");
+
+                device.AudioSessions.Remove(existing);
+                break;
         }
     }
 

@@ -245,17 +245,17 @@ extern "C" __declspec(dllexport) long long __stdcall StartCapture(AudioDeviceInf
         const auto& session = sessions[s];
 
         ComPtr<ApplicationLoopbackCapture> capture = Make<ApplicationLoopbackCapture>(captureId);
-        if (const auto hr = capture->StartCaptureAsync(session.PipeId, true); SUCCEEDED(hr)) {
+        if (const auto hr = capture->StartCaptureAsync(session.ProcessId, session.SessionIdentifier, true); SUCCEEDED(hr)) {
             Logger::GetInstance().Log(
                 "Successfully started ApplicationLoopbackCapture for session index " +
-                std::to_string(s) + ", PipeId = " + std::to_string(session.PipeId)
+                std::to_string(s) + ", ProcessId = " + std::to_string(session.ProcessId)
             );
             activeAppCaptures[captureId].push_back(capture);
         }
         else {
             Logger::GetInstance().Log(
                 "Failed to start ApplicationLoopbackCapture for session index " +
-                std::to_string(s) + ", PipeId = " + std::to_string(session.PipeId) +
+                std::to_string(s) + ", ProcessId = " + std::to_string(session.ProcessId) +
                 ", HRESULT = " + std::to_string(hr)
             );
         }
@@ -266,7 +266,7 @@ extern "C" __declspec(dllexport) long long __stdcall StartCapture(AudioDeviceInf
         const auto& device = inputDevices[i];
 
         auto capture = std::make_unique<AudioDeviceCapture>(captureId);
-        if (const auto hr = capture->StartCaptureAsync(device.Id, device.PipeId); SUCCEEDED(hr)) {
+        if (const auto hr = capture->StartCaptureAsync(device.Id); SUCCEEDED(hr)) {
             Logger::GetInstance().Log(
                 "Successfully started AudioDeviceCapture for device index " +
                 std::to_string(i));

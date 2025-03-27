@@ -8,6 +8,8 @@
 #include <limits>
 #include <stdexcept>
 
+#include "AudioDataBridge.h"
+
 AudioDeviceCapture::AudioDeviceCapture(long long captureId) : m_CaptureId(captureId) {}
 
 AudioDeviceCapture::~AudioDeviceCapture() {
@@ -22,7 +24,7 @@ HRESULT AudioDeviceCapture::InitializeCapture() {
     return S_OK;
 }
 
-HRESULT AudioDeviceCapture::StartCaptureAsync(const std::wstring& deviceId, DWORD pipeId) {
+HRESULT AudioDeviceCapture::StartCaptureAsync(const std::wstring& deviceId) {
     RETURN_IF_FAILED(InitializeCapture());
 
     wil::com_ptr_nothrow<IMMDeviceEnumerator> enumerator;
@@ -50,7 +52,7 @@ HRESULT AudioDeviceCapture::StartCaptureAsync(const std::wstring& deviceId, DWOR
 
     RETURN_IF_FAILED(m_AudioClient->SetEventHandle(m_SampleReadyEvent.get()));
 
-    RETURN_IF_WIN32_BOOL_FALSE(CreateServerPipe(pipeId));
+    m_DeviceId = deviceId;
 
     RETURN_IF_FAILED(m_AudioClient->Start());
 
@@ -68,7 +70,6 @@ HRESULT AudioDeviceCapture::StopCaptureAsync() {
         m_AudioClient->Stop();
     }
 
-    ClosePipe();
     return S_OK;
 }
 
@@ -98,45 +99,13 @@ HRESULT AudioDeviceCapture::OnAudioSampleRequested() {
 
             int32_t dataSizeInt32 = static_cast<int32_t>(dataSize);
 
-            WriteToPipe(reinterpret_cast<const BYTE*>(pcmData.data()), dataSizeInt32);
+            AudioDataBridge::InvokeCallback(m_CaptureId, m_DeviceId, reinterpret_cast<const BYTE*>(pcmData.data()), dataSizeInt32);
         }
         else {
-            WriteToPipe(pData, dataSize);
+            AudioDataBridge::InvokeCallback(m_CaptureId, m_DeviceId, pData, dataSize);
         }
 
         m_AudioCaptureClient->ReleaseBuffer(numFramesAvailable);
     }
     return S_OK;
-}
-
-BOOL AudioDeviceCapture::CreateServerPipe(DWORD pipeId) {
-    TCHAR pipeName[256];
-    swprintf_s(pipeName, _countof(pipeName), L"\\\\.\\pipe\\AudioDataPipe_%lu_%lld", pipeId, m_CaptureId);
-
-    m_hPipe = CreateNamedPipeW(
-        pipeName,
-        PIPE_ACCESS_OUTBOUND,
-        PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-        1,
-        1024 * 16,
-        0,
-        0,
-        NULL
-    );
-
-    return m_hPipe != INVALID_HANDLE_VALUE;
-}
-
-void AudioDeviceCapture::WriteToPipe(const BYTE* data, DWORD dataSize) {
-    if (m_hPipe != INVALID_HANDLE_VALUE) {
-        DWORD written = 0;
-        WriteFile(m_hPipe, data, dataSize, &written, NULL);
-    }
-}
-
-void AudioDeviceCapture::ClosePipe() {
-    if (m_hPipe != NULL) {
-        CloseHandle(m_hPipe);
-        m_hPipe = NULL;
-    }
 }

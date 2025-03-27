@@ -4,6 +4,8 @@
 #include <audioclientactivationparams.h>
 
 #include "ApplicationLoopbackCapture.h"
+
+#include "AudioDataBridge.h"
 #include "Logger.h"
 
 #define BITS_PER_BYTE 8
@@ -133,11 +135,11 @@ HRESULT ApplicationLoopbackCapture::ActivateCompleted(IActivateAudioInterfaceAsy
     return S_OK;
 }
 
-HRESULT ApplicationLoopbackCapture::StartCaptureAsync(DWORD processId, bool includeProcessTree)
+HRESULT ApplicationLoopbackCapture::StartCaptureAsync(DWORD processId, const std::wstring& sessionId, bool includeProcessTree)
 {
-    RETURN_IF_WIN32_BOOL_FALSE(CreateServerPipe(processId));
     RETURN_IF_FAILED(InitializeLoopbackCapture());
     RETURN_IF_FAILED(ActivateAudioInterface(processId, includeProcessTree));
+    m_sessionId = sessionId;
 
     // We should be in the initialzied state if this is the first time through getting ready to capture.
     if (m_DeviceState == DeviceState::Initialized)
@@ -176,8 +178,6 @@ HRESULT ApplicationLoopbackCapture::OnStartCapture(IMFAsyncResult* pResult)
 //
 HRESULT ApplicationLoopbackCapture::StopCaptureAsync()
 {
-    ClosePipe();
-
     RETURN_HR_IF(E_NOT_VALID_STATE, (m_DeviceState != DeviceState::Capturing) &&
         (m_DeviceState != DeviceState::Error));
 
@@ -313,39 +313,11 @@ HRESULT ApplicationLoopbackCapture::OnAudioSampleRequested()
         RETURN_IF_FAILED(m_AudioCaptureClient->GetBuffer(&Data, &FramesAvailable, &dwCaptureFlags, &u64DevicePosition, &u64QPCPosition));
 
         // Write to Pipe
-        WriteToPipe(Data, cbBytesToCapture);
+        AudioDataBridge::InvokeCallback(m_CaptureId, m_sessionId, Data, cbBytesToCapture);
 
         // Release buffer back
         m_AudioCaptureClient->ReleaseBuffer(FramesAvailable);
     }
 
     return S_OK;
-}
-
-BOOL ApplicationLoopbackCapture::CreateServerPipe(DWORD pid) {
-    TCHAR pipeName[256];
-    swprintf_s(pipeName, _countof(pipeName), L"\\\\.\\pipe\\AudioDataPipe_%lu_%lld", pid, m_CaptureId);
-    m_hPipe = CreateNamedPipe(
-        pipeName,
-        PIPE_ACCESS_OUTBOUND,
-        PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-        1,
-        1024 * 16,
-        0,
-        0,
-        NULL
-    );
-
-    return m_hPipe != INVALID_HANDLE_VALUE;
-}
-
-void ApplicationLoopbackCapture::WriteToPipe(const PBYTE data, DWORD dataSize) {
-    if (m_hPipe != INVALID_HANDLE_VALUE) {
-        DWORD written = 0;
-        WriteFile(m_hPipe, data, dataSize, &written, NULL);
-    }
-}
-
-void ApplicationLoopbackCapture::ClosePipe() {
-    CloseHandle(m_hPipe);
 }

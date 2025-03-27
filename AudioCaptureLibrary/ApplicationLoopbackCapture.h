@@ -21,7 +21,7 @@ public:
     ApplicationLoopbackCapture(long long captureId) : m_CaptureId(captureId) {}
     ~ApplicationLoopbackCapture();
 
-    HRESULT StartCaptureAsync(DWORD processId, bool includeProcessTree);
+    HRESULT StartCaptureAsync(DWORD processId, const std::wstring& sessionId, bool includeProcessTree);
     HRESULT StopCaptureAsync();
 
     METHODASYNCCALLBACK(ApplicationLoopbackCapture, StartCapture, OnStartCapture);
@@ -83,7 +83,6 @@ private:
     wil::unique_event_nothrow m_hActivateCompleted;
     wil::unique_event_nothrow m_hCaptureStopped;
 
-    HANDLE m_hPipe = NULL;
-
     long long m_CaptureId = 0;
+    std::wstring m_sessionId;
 };

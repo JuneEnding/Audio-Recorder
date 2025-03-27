@@ -13,7 +13,7 @@ public:
     AudioDeviceCapture(long long captureId);
     ~AudioDeviceCapture();
 
-    HRESULT StartCaptureAsync(const std::wstring& deviceId, DWORD pipeId);
+    HRESULT StartCaptureAsync(const std::wstring& deviceId);
     HRESULT StopCaptureAsync();
 
 private:
@@ -28,6 +28,8 @@ private:
     WAVEFORMATEX* m_CaptureFormat{};
     UINT32 m_BufferFrames = 0;
     wil::unique_event_nothrow m_SampleReadyEvent;
-    HANDLE m_hPipe = NULL;
+
     long long m_CaptureId;
+    std::wstring m_DeviceId;
+
 };

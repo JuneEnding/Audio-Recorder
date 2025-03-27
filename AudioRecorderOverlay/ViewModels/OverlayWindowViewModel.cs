@@ -249,7 +249,7 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
     {
         await Task.Run(() =>
         {
-            // TODO move to settings
+            // TODO: move to settings
             const string applicationName = "AudioRecorder";
             var basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
                 applicationName);
