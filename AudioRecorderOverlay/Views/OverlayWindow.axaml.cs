@@ -17,6 +17,7 @@ namespace AudioRecorderOverlay.Views;
 
 internal sealed partial class OverlayWindow : AppWindow
 {
+    private bool _altPressedAlone;
     private IInputElement? _previousFocusedElement;
     private bool _isMenuFocused;
 
@@ -25,6 +26,7 @@ internal sealed partial class OverlayWindow : AppWindow
         InitializeComponent();
 
         Deactivated += (_, _) => { if (IsVisible) Hide(); };
+        AddHandler(KeyUpEvent, OverlayWindowKeyUpHandler, RoutingStrategies.Tunnel);
         AddHandler(KeyDownEvent, OverlayWindowKeyHandler);
         AddHandler(KeyDownEvent, OverlayWindowTabKeyHandler, RoutingStrategies.Tunnel);
 
@@ -163,37 +165,52 @@ internal sealed partial class OverlayWindow : AppWindow
 
     private void OverlayWindowKeyHandler(object? sender, KeyEventArgs e)
     {
-        if (DataContext is OverlayWindowViewModel viewModel && !viewModel.IsSettingsDialogOpened)
+        if (DataContext is not OverlayWindowViewModel viewModel || viewModel.IsSettingsDialogOpened) return;
+
+        if (e.Key == Key.Escape || e.Key == Key.LWin || e.Key == Key.RWin)
         {
-            if (e.Key == Key.Escape || e.Key == Key.LWin || e.Key == Key.RWin)
-            {
-                HideOverlay(sender, e);
-                e.Handled = true;
-            }
-
-            if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt)
-            {
-                if (!_isMenuFocused)
-                {
-                    _previousFocusedElement = FocusManager?.GetFocusedElement();
-
-                    if (MainMenu.Items.OfType<MenuItem>().FirstOrDefault() is MenuItem firstItem)
-                    {
-                        firstItem.IsSubMenuOpen = true;
-                        firstItem.Focus();
-                        _isMenuFocused = true;
-                    }
-                }
-                else
-                {
-                    _previousFocusedElement?.Focus();
-                    _previousFocusedElement = null;
-                    _isMenuFocused = false;
-                }
-
-                e.Handled = true;
-            }
+            HideOverlay(sender, e);
+            e.Handled = true;
         }
+
+        if (e.Key == Key.LeftAlt || e.Key == Key.RightAlt)
+        {
+            _altPressedAlone = true;
+        }
+        else if (e.Key != Key.None)
+        {
+            _altPressedAlone = false;
+        }
+    }
+
+    private void OverlayWindowKeyUpHandler(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not OverlayWindowViewModel viewModel || viewModel.IsSettingsDialogOpened) return;
+
+        if ((e.Key == Key.LeftAlt || e.Key == Key.RightAlt) && _altPressedAlone)
+        {
+            if (!_isMenuFocused)
+            {
+                _previousFocusedElement = FocusManager?.GetFocusedElement();
+
+                if (MainMenu.Items.OfType<MenuItem>().FirstOrDefault() is MenuItem firstItem)
+                {
+                    firstItem.IsSubMenuOpen = true;
+                    firstItem.Focus();
+                    _isMenuFocused = true;
+                }
+            }
+            else
+            {
+                _previousFocusedElement?.Focus();
+                _previousFocusedElement = null;
+                _isMenuFocused = false;
+            }
+
+            e.Handled = true;
+        }
+
+        _altPressedAlone = false;
     }
 
     private void OverlayWindowTabKeyHandler(object? sender, KeyEventArgs e)

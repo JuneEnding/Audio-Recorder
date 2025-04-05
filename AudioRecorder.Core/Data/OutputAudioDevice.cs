@@ -30,5 +30,5 @@ internal sealed class OutputAudioDevice : AudioDevice
     }
 
     [ProtoMember(3)]
-    public readonly RangedObservableCollection<AudioSession> AudioSessions;
+    public RangedObservableCollection<AudioSession> AudioSessions { get; }
 }

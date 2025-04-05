@@ -5,6 +5,8 @@
 #include <string>
 #include <filesystem>
 
+#include "AudioDeviceCapture.h"
+
 #pragma comment(lib, "psapi.lib")
 #pragma comment(lib, "Version.lib")
 
@@ -111,6 +113,8 @@ std::vector<AudioSessionInfo> OutputAudioDeviceManager::GetSessions(wil::com_ptr
             std::wstring wDisplayName(displayName);
             std::wstring finalDisplayName;
 
+            CoTaskMemFree(displayName);
+
             if (wDisplayName.find(L'\\') != std::wstring::npos || wDisplayName.find(L'/') != std::wstring::npos) {
                 std::filesystem::path p(wDisplayName);
                 finalDisplayName = p.stem().wstring();
@@ -120,7 +124,6 @@ std::vector<AudioSessionInfo> OutputAudioDeviceManager::GetSessions(wil::com_ptr
             }
 
             sessionInfo.DisplayName = SysAllocString(finalDisplayName.c_str());
-            CoTaskMemFree(displayName);
         }
         else {
             std::wstring processName = GetProcessName(pid);
@@ -216,8 +219,6 @@ void OutputAudioDeviceManager::UnregisterSessionNotificationsForDevice(const std
     auto itNotify = _sessionNotifications.find(deviceId);
     if (itNotify != _sessionNotifications.end()) {
         itNotify->second->UnregisterAllSessionEvents();
-        itNotify->second->Release();
         _sessionNotifications.erase(itNotify);
     }
 }
-

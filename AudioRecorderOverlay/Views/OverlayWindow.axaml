@@ -6,6 +6,7 @@
         xmlns:wnd="clr-namespace:FluentAvalonia.UI.Windowing;assembly=FluentAvalonia"
         xmlns:ui="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
         xmlns:converters="clr-namespace:AudioRecorderOverlay.Converters"
+        xmlns:views="clr-namespace:AudioRecorderOverlay.Views"
         mc:Ignorable="d" d:DesignWidth="1920" d:DesignHeight="1080"
         x:Class="AudioRecorderOverlay.Views.OverlayWindow"
         x:DataType="vm:OverlayWindowViewModel"
@@ -174,95 +175,20 @@
                     </Border>
                     
                     <Grid Grid.Row="1" ColumnDefinitions="* *" Margin="0 128 0 0">
-						<Border Grid.Column="0" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="12"
-                                Margin="0 0 16 0">
-							<Border Padding="32" CornerRadius="10"
-                                    BorderBrush="{DynamicResource MenuBarItemBorderBrush}"
-                                    BorderThickness="4">
-								<Grid RowDefinitions="Auto Auto *">
-									<TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="Устройства ввода"/>
+                        <Grid.IsEnabled>
+                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                <Binding Path="!IsInstantReplayRunning"/>
+                                <Binding Path="!IsRecording"/>
+                            </MultiBinding>
+                        </Grid.IsEnabled>
 
-									<TextBox Grid.Row="1" HorizontalAlignment="Stretch"
-											 Margin="0 18"
-											 Watermark="Поиск"
-											 Text="{Binding DevicesFilterText}">
-										<TextBox.InnerRightContent>
-											<ui:SymbolIcon Symbol="Find"
-														   FontSize="18"
-														   Margin="8 0" />
-										</TextBox.InnerRightContent>
-									</TextBox>
+                        <views:InputDevicesView Grid.Column="0"
+                                                Margin="0 0 16 0"
+                                                DataContext="{Binding Path=InputDevicesViewModel}"/>
 
-									<ScrollViewer Grid.Row="2">
-										<ItemsControl ItemsSource="{Binding Path=FilteredAudioDevices}">
-											<ItemsControl.ItemsPanel>
-												<ItemsPanelTemplate>
-													<StackPanel Orientation="Vertical"/>
-												</ItemsPanelTemplate>
-											</ItemsControl.ItemsPanel>
-											<ItemsControl.ItemTemplate>
-												<DataTemplate>
-													<CheckBox ToolTip.Tip="{Binding Path=Name}" IsChecked="{Binding Path=IsChecked}"
-															  HorizontalAlignment="Stretch">
-														<CheckBox.Content>
-															<StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
-																<!--Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="8 0"/-->
-																<TextBlock Text="{Binding Path=Name}" VerticalAlignment="Stretch"/>
-															</StackPanel>
-														</CheckBox.Content>
-													</CheckBox>
-												</DataTemplate>
-											</ItemsControl.ItemTemplate>
-										</ItemsControl>
-									</ScrollViewer>
-								</Grid>
-							</Border>
-						</Border>
-
-                        <Border Grid.Column="1" Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="12"
-                                Margin="16 0 0 0">
-							<Border Padding="32" CornerRadius="10"
-                                    BorderBrush="{DynamicResource MenuBarItemBorderBrush}"
-                                    BorderThickness="4">
-								<Grid RowDefinitions="Auto Auto *">
-									<TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="Приложения"/>
-
-									<TextBox Grid.Row="1" HorizontalAlignment="Stretch"
-											 Margin="0 18"
-											 Watermark="Поиск"
-											 Text="{Binding ProcessesFilterText}">
-										<TextBox.InnerRightContent>
-											<ui:SymbolIcon Symbol="Find"
-														   FontSize="18"
-														   Margin="8 0" />
-										</TextBox.InnerRightContent>
-									</TextBox>
-
-									<ScrollViewer Grid.Row="2">
-										<ItemsControl ItemsSource="{Binding Path=FilteredAudioSessions}">
-											<ItemsControl.ItemsPanel>
-												<ItemsPanelTemplate>
-													<StackPanel Orientation="Vertical"/>
-												</ItemsPanelTemplate>
-											</ItemsControl.ItemsPanel>
-											<ItemsControl.ItemTemplate>
-												<DataTemplate>
-													<CheckBox ToolTip.Tip="{Binding Path=DisplayName}" IsChecked="{Binding Path=IsChecked}"
-															  HorizontalAlignment="Stretch">
-														<CheckBox.Content>
-															<StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
-																<Image Width="20" Height="20" Source="{Binding Path=Icon}" Margin="8 0"/>
-																<TextBlock Text="{Binding Path=DisplayName}" VerticalAlignment="Stretch"/>
-															</StackPanel>
-														</CheckBox.Content>
-													</CheckBox>
-												</DataTemplate>
-											</ItemsControl.ItemTemplate>
-										</ItemsControl>
-									</ScrollViewer>
-								</Grid>
-							</Border>
-                        </Border>
+                        <views:OutputDevicesViewModel Grid.Column="1"
+                                                      Margin="16 0 0 0"
+                                                      DataContext="{Binding Path=OutputDevicesViewModel}"/>
                     </Grid>
                 </Grid>
             </Panel>

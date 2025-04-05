@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ProtoBuf;
 using ReactiveUI;
 
@@ -43,7 +44,18 @@ internal class AudioDevice : ReactiveObject
     public bool IsChecked
     {
         get => _isChecked;
-        set => this.RaiseAndSetIfChanged(ref _isChecked, value);
+        set
+        {
+            //try
+            //{
+            //    Console.WriteLine($"Started is checked {value}");
+                this.RaiseAndSetIfChanged(ref _isChecked, value);
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine(ex.Message);
+            //}
+        }
     }
 
     public AudioDevice(AudioDeviceInfo deviceInfo)

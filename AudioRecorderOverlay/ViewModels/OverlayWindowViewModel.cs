@@ -1,18 +1,15 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using AudioRecorder.Core.Data;
 using AudioRecorder.Core.Services;
 using AudioRecorderOverlay.Enums;
 using AudioRecorderOverlay.Views;
 using Avalonia;
 using Avalonia.Threading;
-using DynamicData.Binding;
 using FluentAvalonia.UI.Controls;
 using ReactiveUI;
 
@@ -20,6 +17,9 @@ namespace AudioRecorderOverlay.ViewModels;
 
 internal sealed class OverlayWindowViewModel : ReactiveObject
 {
+    public InputDevicesViewModel InputDevicesViewModel { get; } = new();
+    public OutputDevicesViewModel OutputDevicesViewModel { get; } = new();
+     
     public ReactiveCommand<Unit, Unit> StartInstantReplayCommand { get; }
     public ReactiveCommand<Unit, Unit> StopInstantReplayCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveInstantReplayCommand { get; }
@@ -42,13 +42,6 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _isRecording, value);
     }
 
-    private string _devicesFilterText = string.Empty;
-    public string DevicesFilterText
-    {
-        get => _devicesFilterText;
-        set => this.RaiseAndSetIfChanged(ref _devicesFilterText, value);
-    }
-
     private RecordingState _instantReplayState;
     public RecordingState InstantReplayState
     {
@@ -61,13 +54,6 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
     {
         get => _recordingState;
         private set => this.RaiseAndSetIfChanged(ref _recordingState, value);
-    }
-
-    private string _processesFilterText = string.Empty;
-    public string ProcessesFilterText
-    {
-        get => _processesFilterText;
-        set => this.RaiseAndSetIfChanged(ref _processesFilterText, value);
     }
 
     private bool _isSettingsDialogOpened;
@@ -87,12 +73,6 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
         }
     }
 
-    private readonly ObservableAsPropertyHelper<ObservableCollection<InputAudioDevice>> _filteredAudioDevices;
-    public ObservableCollection<InputAudioDevice> FilteredAudioDevices => _filteredAudioDevices.Value;
-
-    private readonly ObservableAsPropertyHelper<ObservableCollection<AudioSession>> _filteredAudioSessions;
-    public ObservableCollection<AudioSession> FilteredAudioSessions => _filteredAudioSessions.Value;
-    
     private AudioDataProcessor? _activeInstantReplayProcessor;
     private AudioDataProcessor? _activeRecordingProcessor;
 
@@ -119,32 +99,6 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
         OpenLibraryFolderCommand = ReactiveCommand.CreateFromTask(OpenLibraryFolderAsync);
 
         OpenSettingsDialogCommand = ReactiveCommand.CreateFromTask(OpenSettingsDialogAsync);
-
-        var audioDevicesChanged = InputAudioDeviceService.Instance.ActiveInputAudioDevices
-            .ToObservableChangeSet()
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Select(_ => Unit.Default);
-
-        var processesChanged = OutputAudioDeviceService.Instance.AllAudioSessions
-            .ToObservableChangeSet()
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Select(_ => Unit.Default);
-
-        var devicesFilterChanged = this.WhenAnyValue(x => x.DevicesFilterText)
-            .Throttle(TimeSpan.FromMilliseconds(300))
-            .Select(_ => Unit.Default);
-
-        var processesFilterChanged = this.WhenAnyValue(x => x.ProcessesFilterText)
-            .Throttle(TimeSpan.FromMilliseconds(300))
-            .Select(_ => Unit.Default);
-
-        audioDevicesChanged.Merge(devicesFilterChanged)
-            .Select(_ => FilterAudioDevices())
-            .ToProperty(this, x => x.FilteredAudioDevices, out _filteredAudioDevices);
-
-        processesChanged.Merge(processesFilterChanged)
-            .Select(_ => FilterProcesses())
-            .ToProperty(this, x => x.FilteredAudioSessions, out _filteredAudioSessions);
     }
 
     ~OverlayWindowViewModel()
@@ -162,28 +116,6 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
         }
     }
 
-    private ObservableCollection<InputAudioDevice> FilterAudioDevices()
-    {
-        var filtered = InputAudioDeviceService.Instance.ActiveInputAudioDevices
-            .Where(device =>
-                string.IsNullOrWhiteSpace(DevicesFilterText) ||
-                device.Name.Contains(DevicesFilterText, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        return new ObservableCollection<InputAudioDevice>(filtered);
-    }
-
-    private ObservableCollection<AudioSession> FilterProcesses()
-    {
-        var filtered = OutputAudioDeviceService.Instance.AllAudioSessions
-            .Where(process =>
-                string.IsNullOrWhiteSpace(ProcessesFilterText) ||
-                process.DisplayName.Contains(ProcessesFilterText, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        return new ObservableCollection<AudioSession>(filtered);
-    }
-
     private async Task StartInstantReplayAsync()
     {
         InstantReplayState = RecordingState.Preparing;
@@ -194,9 +126,10 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
                 .Where(d => d.IsChecked)
                 .Select(d => d.ToAudioDeviceInfo()).ToArray();
             var activeRecordingOutputDevices = OutputAudioDeviceService.Instance.ActiveOutputAudioDevices
-                .Where(s => s.IsChecked)
-                .Select(s => s.ToAudioDeviceInfo()).ToArray();
-            var activeRecordingAudioSessions = OutputAudioDeviceService.Instance.AllAudioSessions
+                .Where(d => d.IsChecked)
+                .Select(d => d.ToAudioDeviceInfo()).ToArray();
+            var activeRecordingAudioSessions = OutputAudioDeviceService.Instance.ActiveOutputAudioDevices
+                .SelectMany(device => device.AudioSessions)
                 .Where(s => s.IsChecked)
                 .Select(s => s.ToAudioSessionInfo()).ToArray();
 
@@ -273,7 +206,8 @@ internal sealed class OverlayWindowViewModel : ReactiveObject
             var activeRecordingOutputDevices = OutputAudioDeviceService.Instance.ActiveOutputAudioDevices
                 .Where(s => s.IsChecked)
                 .Select(s => s.ToAudioDeviceInfo()).ToArray();
-            var activeRecordingAudioSessions = OutputAudioDeviceService.Instance.AllAudioSessions
+            var activeRecordingAudioSessions = OutputAudioDeviceService.Instance.ActiveOutputAudioDevices
+                .SelectMany(device => device.AudioSessions)
                 .Where(s => s.IsChecked)
                 .Select(s => s.ToAudioSessionInfo()).ToArray();
 

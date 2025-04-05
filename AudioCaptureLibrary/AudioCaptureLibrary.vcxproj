@@ -157,6 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AudioCaptureInterface.cpp" />
+    <ClCompile Include="AudioCaptureManager.cpp" />
     <ClCompile Include="AudioDataBridge.cpp" />
     <ClCompile Include="AudioDeviceCapture.cpp" />
     <ClCompile Include="AudioDeviceManagerBase.cpp" />
@@ -171,12 +172,14 @@
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AudioCaptureManager.h" />
     <ClInclude Include="AudioDataBridge.h" />
     <ClInclude Include="AudioDeviceCapture.h" />
     <ClInclude Include="AudioDeviceInfo.h" />
     <ClInclude Include="AudioDeviceManagerBase.h" />
     <ClInclude Include="AudioSessionEvents.h" />
     <ClInclude Include="AudioSessionNotification.h" />
+    <ClInclude Include="DeviceState.h" />
     <ClInclude Include="InputAudioDeviceManager.h" />
     <ClInclude Include="AudioDeviceNotificationClient.h" />
     <ClInclude Include="Common.h" />

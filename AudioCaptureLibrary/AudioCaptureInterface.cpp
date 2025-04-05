@@ -6,22 +6,16 @@
 #include <map>
 #include <string>
 #include <chrono>
-#include <sstream>
-#include <iomanip>
 #include <memory>
 #include <comutil.h>
 #include <vector>
-#include <propkey.h>
 #include <winapifamily.h>
-#include <devpkey.h>
-#include <functiondiscoverykeys_devpkey.h>
-#include <string>
 #include <functional>
 
 #include "pch.h"
 #include "ApplicationLoopbackCapture.h"
+#include "AudioCaptureManager.h"
 #include "AudioDeviceCapture.h"
-#include "AudioSessionNotification.h"
 #include "Logger.h"
 #include "OutputAudioDeviceManager.h"
 #include "InputAudioDeviceManager.h"
@@ -217,86 +211,10 @@ extern "C" __declspec(dllexport) void __stdcall FreeOutputAudioDevicesArray(Outp
     }
 }
 
-std::map<long long, std::vector<ComPtr<ApplicationLoopbackCapture>>> activeAppCaptures;
-std::map<long long, std::vector<std::unique_ptr<AudioDeviceCapture>>> activeDeviceCaptures;
-
-long long GenerateUniqueId() {
-    auto now = std::chrono::system_clock::now();
-
-    auto duration = now.time_since_epoch();
-    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-
-    return millis;
-}
-
 extern "C" __declspec(dllexport) long long __stdcall StartCapture(AudioDeviceInfo* inputDevices, int inputDeviceCount, AudioDeviceInfo* outputDevices, int outputDeviceCount, AudioSessionInfo* sessions, int sessionCount) {
-    Logger::GetInstance().Log("StartCapture called.");
-    Logger::GetInstance().Log(
-        "Parameters: inputDeviceCount = " + std::to_string(inputDeviceCount) +
-        ", outputDeviceCount = " + std::to_string(outputDeviceCount) +
-        ", sessionCount = " + std::to_string(sessionCount)
-    );
-
-	auto captureId = GenerateUniqueId();
-    Logger::GetInstance().Log("Generated captureId: " + std::to_string(captureId));
-
-    for (int s = 0; s < sessionCount; ++s) {
-        Logger::GetInstance().Log("Starting capture for session index " + std::to_string(s));
-        const auto& session = sessions[s];
-
-        ComPtr<ApplicationLoopbackCapture> capture = Make<ApplicationLoopbackCapture>(captureId);
-        if (const auto hr = capture->StartCaptureAsync(session.ProcessId, session.SessionIdentifier, true); SUCCEEDED(hr)) {
-            Logger::GetInstance().Log(
-                "Successfully started ApplicationLoopbackCapture for session index " +
-                std::to_string(s) + ", ProcessId = " + std::to_string(session.ProcessId)
-            );
-            activeAppCaptures[captureId].push_back(capture);
-        }
-        else {
-            Logger::GetInstance().Log(
-                "Failed to start ApplicationLoopbackCapture for session index " +
-                std::to_string(s) + ", ProcessId = " + std::to_string(session.ProcessId) +
-                ", HRESULT = " + std::to_string(hr)
-            );
-        }
-    }
-
-    for (int i = 0; i < inputDeviceCount; ++i) {
-        Logger::GetInstance().Log("Starting capture for input device index " + std::to_string(i));
-        const auto& device = inputDevices[i];
-
-        auto capture = std::make_unique<AudioDeviceCapture>(captureId);
-        if (const auto hr = capture->StartCaptureAsync(device.Id); SUCCEEDED(hr)) {
-            Logger::GetInstance().Log(
-                "Successfully started AudioDeviceCapture for device index " +
-                std::to_string(i));
-            activeDeviceCaptures[captureId].push_back(std::move(capture));
-        }
-        else {
-            Logger::GetInstance().Log(
-                "Failed to start AudioDeviceCapture for device index " +
-                std::to_string(i) + ", HRESULT = " + std::to_string(hr)
-            );
-        }
-    }
-
-    return captureId;
+    return AudioCaptureManager::StartCapture(inputDevices, inputDeviceCount, outputDevices, outputDeviceCount, sessions, sessionCount);
 }
 
 extern "C" __declspec(dllexport) void __stdcall StopCapture(long long captureId) {
-    auto deviceIt = activeDeviceCaptures.find(captureId);
-    if (deviceIt != activeDeviceCaptures.end()) {
-        for (auto& capture : deviceIt->second) {
-            capture->StopCaptureAsync();
-        }
-        activeDeviceCaptures.erase(deviceIt);
-    }
-    
-    auto appIt = activeAppCaptures.find(captureId);
-    if (appIt != activeAppCaptures.end()) {
-        for (auto& capture : appIt->second) {
-            capture->StopCaptureAsync();
-        }
-        activeAppCaptures.erase(appIt);
-    }
+    AudioCaptureManager::StopCapture(captureId);
 }

@@ -2,6 +2,7 @@
 #include <mmdeviceapi.h>
 #include "AudioSessionNotification.h"
 
+#include "AudioCaptureManager.h"
 #include "AudioSessionEvents.h"
 
 AudioSessionNotification::AudioSessionNotification(std::wstring deviceId, SessionStateChangedCallback callback)
@@ -69,6 +70,10 @@ HRESULT STDMETHODCALLTYPE AudioSessionNotification::OnSessionCreated(IAudioSessi
         _stateChangedCallback(_deviceId.c_str(), sessionId.c_str(), AudioSessionStateActive);
     }
 
+    if (!sessionId.empty() && pid != 0) {
+        AudioCaptureManager::ReconnectSession(sessionId, pid);
+    }
+
     return S_OK;
 }
 
@@ -121,14 +126,12 @@ void AudioSessionNotification::UnregisterAllSessionEvents() {
     for (auto& [sessionId, eventsPtr] : _sessionEvents) {
         if (eventsPtr) {
             eventsPtr->Unregister();
-            //eventsPtr->Release();
         }
     }
     _sessionEvents.clear();
 
     if (_sessionManager2) {
         _sessionManager2->UnregisterSessionNotification(this);
-        _sessionManager2.reset();
     }
 }
 

@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AudioRecorderOverlay.ViewModels"
+             xmlns:controls="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+             xmlns:data="clr-namespace:AudioRecorder.Core.Data;assembly=AudioRecorder.Core"
+             x:DataType="vm:OutputDevicesViewModel"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="450"
+             x:Class="AudioRecorderOverlay.Views.OutputDevicesViewModel">
+
+	<Border Background="{DynamicResource AcrylicBackgroundFillColorBaseBrush}"
+            CornerRadius="12">
+		<Border Padding="32" CornerRadius="10"
+                BorderBrush="{DynamicResource MenuBarItemBorderBrush}"
+                BorderThickness="4">
+			<Grid RowDefinitions="Auto Auto *">
+				<TextBlock Grid.Row="0" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="Приложения"/>
+
+				<TextBox Grid.Row="1" HorizontalAlignment="Stretch"
+                         Margin="0 18"
+                         Watermark="Поиск"
+                         Text="{Binding FilterText}">
+					<TextBox.InnerRightContent>
+						<controls:SymbolIcon Symbol="Find"
+                                       FontSize="18"
+                                       Margin="8 0" />
+					</TextBox.InnerRightContent>
+				</TextBox>
+
+				<TreeView Grid.Row="2" Margin="-32 0"
+                          ItemsSource="{Binding Path=FilteredOutputDevices}"
+                          SelectionChanged="TreeView_OnSelectionChanged">
+					<TreeView.Styles>
+						<Style Selector="TreeViewItem">
+							<Setter Property="IsExpanded" Value="True"/>
+                        </Style>
+                    </TreeView.Styles>
+
+                    <TreeView.DataTemplates>
+						<TreeDataTemplate DataType="vm:OutputDeviceViewModel"
+										  ItemsSource="{Binding Path=Sessions}">
+                            <CheckBox IsChecked="{Binding Path=IsChecked}"
+                                      HorizontalAlignment="Stretch">
+								<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Spacing="8">
+									<TextBlock Text="{Binding Path=Name}"/>
+								</StackPanel>
+							</CheckBox>
+						</TreeDataTemplate>
+
+						<TreeDataTemplate DataType="data:AudioSession">
+							<CheckBox IsChecked="{Binding Path=IsChecked}"
+                                      HorizontalAlignment="Stretch">
+								<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Spacing="8">
+									<Image Source="{Binding Path=Icon}" Width="20" Height="20" Margin="4 0"/>
+									<TextBlock Text="{Binding Path=DisplayName}"/>
+								</StackPanel>
+							</CheckBox>
+						</TreeDataTemplate>
+					</TreeView.DataTemplates>
+				</TreeView>
+			</Grid>
+		</Border>
+	</Border>
+
+</UserControl>

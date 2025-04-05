@@ -5,12 +5,15 @@
 #include <initguid.h>
 #include <guiddef.h>
 #include <mfapi.h>
+#include <wchar.h>
+#include <string>
 
 #include <wrl\implements.h>
 #include <wil\com.h>
 #include <wil\result.h>
 
 #include "Common.h"
+#include "DeviceState.h"
 
 using namespace Microsoft::WRL;
 
@@ -18,10 +21,13 @@ class ApplicationLoopbackCapture :
     public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
 {
 public:
-    ApplicationLoopbackCapture(long long captureId) : m_CaptureId(captureId) {}
+    ApplicationLoopbackCapture(long long captureId, std::wstring sessionId, DWORD processId) :
+		m_CaptureId(captureId),
+		m_SessionId(std::move(sessionId)),
+		m_ProcessId(processId) {}
     ~ApplicationLoopbackCapture();
 
-    HRESULT StartCaptureAsync(DWORD processId, const std::wstring& sessionId, bool includeProcessTree);
+    HRESULT StartCaptureAsync(bool includeProcessTree);
     HRESULT StopCaptureAsync();
 
     METHODASYNCCALLBACK(ApplicationLoopbackCapture, StartCapture, OnStartCapture);
@@ -32,20 +38,10 @@ public:
     // IActivateAudioInterfaceCompletionHandler
     STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation* operation);
 
-private:
-    // NB: All states >= Initialized will allow some methods
-        // to be called successfully on the Audio Client
-    enum class DeviceState
-    {
-        Uninitialized,
-        Error,
-        Initialized,
-        Starting,
-        Capturing,
-        Stopping,
-        Stopped,
-    };
+    std::wstring GetSessionId() const;
+    DWORD GetProcessId() const;
 
+private:
     HRESULT OnStartCapture(IMFAsyncResult* pResult);
     HRESULT OnStopCapture(IMFAsyncResult* pResult);
     HRESULT OnFinishCapture(IMFAsyncResult* pResult);
@@ -53,9 +49,6 @@ private:
 
     HRESULT InitializeLoopbackCapture();
     HRESULT OnAudioSampleRequested();
-    BOOL CreateServerPipe(DWORD pid);
-    void WriteToPipe(const PBYTE data, DWORD dataSize);
-    void ClosePipe();
 
     HRESULT ActivateAudioInterface(DWORD processId, bool includeProcessTree);
     HRESULT FinishCaptureAsync();
@@ -84,5 +77,6 @@ private:
     wil::unique_event_nothrow m_hCaptureStopped;
 
     long long m_CaptureId = 0;
-    std::wstring m_sessionId;
+    std::wstring m_SessionId;
+    DWORD m_ProcessId = 0;
 };

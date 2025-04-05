@@ -1,6 +1,7 @@
 #include "AudioDeviceNotificationClient.h"
 #include <optional>
 
+#include "AudioCaptureManager.h"
 #include "Logger.h"
 
 AudioDeviceNotificationClient::AudioDeviceNotificationClient(DeviceStateChangedCallback callback, wil::com_ptr<IMMDeviceEnumerator> enumerator, EDataFlow flow)
@@ -88,6 +89,10 @@ HRESULT STDMETHODCALLTYPE AudioDeviceNotificationClient::OnDeviceStateChanged(LP
     if (flowOpt.value() == _dataFlow) {
         Logger::GetInstance().Log("Device matched expected flow, calling callback", LogLevel::Info);
         _stateChangedCallback(pwstrDeviceId, static_cast<int>(dwNewState));
+
+        if (dwNewState == DEVICE_STATE_ACTIVE) {
+            AudioCaptureManager::ReconnectDevice(pwstrDeviceId);
+        }
     }
     else {
         Logger::GetInstance().Log("Device flow does not match expected, skipping", LogLevel::Debug);

@@ -20,7 +20,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\AudioCaptureLibrary\AudioCaptureLibrary.vcxproj" />
+		<ProjectReference Include="..\AudioCaptureLibrary\AudioCaptureLibrary.vcxproj">
+		  <Private>True</Private>
+		</ProjectReference>
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

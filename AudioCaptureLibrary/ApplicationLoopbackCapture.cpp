@@ -6,6 +6,7 @@
 #include "ApplicationLoopbackCapture.h"
 
 #include "AudioDataBridge.h"
+#include "AudioSessionEvents.h"
 #include "Logger.h"
 
 #define BITS_PER_BYTE 8
@@ -45,8 +46,7 @@ HRESULT ApplicationLoopbackCapture::InitializeLoopbackCapture()
 
 ApplicationLoopbackCapture::~ApplicationLoopbackCapture()
 {
-    if (m_dwQueueID != 0)
-    {
+    if (m_dwQueueID != 0) {
         MFUnlockWorkQueue(m_dwQueueID);
     }
 }
@@ -60,7 +60,7 @@ HRESULT ApplicationLoopbackCapture::ActivateAudioInterface(DWORD processId, bool
             audioclientActivationParams.ProcessLoopbackParams.ProcessLoopbackMode = includeProcessTree ?
                 PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE : PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE;
             audioclientActivationParams.ProcessLoopbackParams.TargetProcessId = processId;
-
+            
             PROPVARIANT activateParams = {};
             activateParams.vt = VT_BLOB;
             activateParams.blob.cbSize = sizeof(audioclientActivationParams);
@@ -103,12 +103,13 @@ HRESULT ApplicationLoopbackCapture::ActivateCompleted(IActivateAudioInterfaceAsy
             m_CaptureFormat.wBitsPerSample = 16;
             m_CaptureFormat.nBlockAlign = m_CaptureFormat.nChannels * m_CaptureFormat.wBitsPerSample / BITS_PER_BYTE;
             m_CaptureFormat.nAvgBytesPerSec = m_CaptureFormat.nSamplesPerSec * m_CaptureFormat.nBlockAlign;
+            m_CaptureFormat.cbSize = 0;
 
             // Initialize the AudioClient in Shared Mode with the user specified buffer
             RETURN_IF_FAILED(m_AudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
-                AUDCLNT_STREAMFLAGS_LOOPBACK | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
-                200000,
-                AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM,
+                AUDCLNT_STREAMFLAGS_LOOPBACK | AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM,
+                10000000,
+                0,
                 &m_CaptureFormat,
                 nullptr));
 
@@ -135,11 +136,10 @@ HRESULT ApplicationLoopbackCapture::ActivateCompleted(IActivateAudioInterfaceAsy
     return S_OK;
 }
 
-HRESULT ApplicationLoopbackCapture::StartCaptureAsync(DWORD processId, const std::wstring& sessionId, bool includeProcessTree)
+HRESULT ApplicationLoopbackCapture::StartCaptureAsync(bool includeProcessTree)
 {
     RETURN_IF_FAILED(InitializeLoopbackCapture());
-    RETURN_IF_FAILED(ActivateAudioInterface(processId, includeProcessTree));
-    m_sessionId = sessionId;
+    RETURN_IF_FAILED(ActivateAudioInterface(m_ProcessId, includeProcessTree));
 
     // We should be in the initialzied state if this is the first time through getting ready to capture.
     if (m_DeviceState == DeviceState::Initialized)
@@ -274,14 +274,12 @@ HRESULT ApplicationLoopbackCapture::OnAudioSampleRequested()
     DWORD dwCaptureFlags;
     UINT64 u64DevicePosition = 0;
     UINT64 u64QPCPosition = 0;
-    DWORD cbBytesToCapture = 0;
 
     auto lock = m_CritSec.lock();
 
     // If this flag is set, we have already queued up the async call to finialize the WAV header
     // So we don't want to grab or write any more data that would possibly give us an invalid size
-    if (m_DeviceState == DeviceState::Stopping)
-    {
+    if (m_DeviceState != DeviceState::Capturing) {
         return S_OK;
     }
 
@@ -305,19 +303,32 @@ HRESULT ApplicationLoopbackCapture::OnAudioSampleRequested()
     //
     // We do this by calling IAudioCaptureClient::GetNextPacketSize
     // over and over again until it indicates there are no more packets remaining.
-    while (SUCCEEDED(m_AudioCaptureClient->GetNextPacketSize(&FramesAvailable)) && FramesAvailable > 0)
-    {
-        cbBytesToCapture = FramesAvailable * m_CaptureFormat.nBlockAlign;
+    try {
+	    while (SUCCEEDED(m_AudioCaptureClient->GetNextPacketSize(&FramesAvailable)) && FramesAvailable > 0)
+        {
+            DWORD cbBytesToCapture = FramesAvailable * m_CaptureFormat.nBlockAlign;
 
-        // Get sample buffer
-        RETURN_IF_FAILED(m_AudioCaptureClient->GetBuffer(&Data, &FramesAvailable, &dwCaptureFlags, &u64DevicePosition, &u64QPCPosition));
+            // Get sample buffer
+            RETURN_IF_FAILED(m_AudioCaptureClient->GetBuffer(&Data, &FramesAvailable, &dwCaptureFlags, &u64DevicePosition, &u64QPCPosition));
 
-        // Write to Pipe
-        AudioDataBridge::InvokeCallback(m_CaptureId, m_sessionId, Data, cbBytesToCapture);
+            // Write to Pipe
+            AudioDataBridge::InvokeCallback(m_CaptureId, m_SessionId, Data, cbBytesToCapture);
 
-        // Release buffer back
-        m_AudioCaptureClient->ReleaseBuffer(FramesAvailable);
+            // Release buffer back
+            m_AudioCaptureClient->ReleaseBuffer(FramesAvailable);
+        }
+    } catch (...) {
+        return S_OK;
     }
 
     return S_OK;
 }
+
+std::wstring ApplicationLoopbackCapture::GetSessionId() const {
+    return m_SessionId;
+}
+
+DWORD ApplicationLoopbackCapture::GetProcessId() const {
+    return m_ProcessId;
+}
+

@@ -30,20 +30,10 @@ internal sealed class OutputAudioDeviceService
 
     public readonly RangedObservableCollection<OutputAudioDevice> ActiveOutputAudioDevices = [];
 
-    private readonly ReadOnlyObservableCollection<AudioSession> _allAudioSessions;
-    public ReadOnlyObservableCollection<AudioSession> AllAudioSessions => _allAudioSessions;
-
     public event Action<string, int>? DeviceStateChanged;
 
     private OutputAudioDeviceService()
     {
-        ActiveOutputAudioDevices
-            .ToObservableChangeSet()
-            .AutoRefresh()
-            .TransformMany(device => device.AudioSessions)
-            .Bind(out _allAudioSessions)
-            .Subscribe();
-
         try
         {
             _deviceStateChangedCallback = OnDeviceStateChanged;

@@ -33,21 +33,6 @@ std::vector<wil::com_ptr_nothrow<IMMDevice>> AudioDeviceManagerBase::GetActiveDe
 {
     std::vector<wil::com_ptr_nothrow<IMMDevice>> devices = {};
     wil::com_ptr_nothrow<IMMDeviceCollection> deviceCollection = nullptr;
-
-    /*
-    // Временно использую только дефолтное устройство
-    if (dataFlow == eRender || dataFlow == eCapture) {
-        wil::com_ptr_nothrow<IMMDevice> defaultDevice = nullptr;
-        HRESULT hr = deviceEnumerator->GetDefaultAudioEndpoint(dataFlow, eConsole, &defaultDevice);
-        if (SUCCEEDED(hr)) {
-            devices.push_back(defaultDevice);
-        }
-        else {
-            Logger::GetInstance().Log("Failed to get default audio endpoint", LogLevel::Warning);
-        }
-    }
-    return devices;
-    */
 	
     if (FAILED(deviceEnumerator->EnumAudioEndpoints(dataFlow, DEVICE_STATE_ACTIVE, &deviceCollection))) {
         Logger::GetInstance().Log("Failed to enumerate audio endpoints", LogLevel::Warning);
@@ -174,7 +159,7 @@ WAVEFORMATEX* AudioDeviceManagerBase::GetDeviceFormat(wil::com_ptr_nothrow<IMMDe
 void AudioDeviceManagerBase::RegisterNotificationCallback(DeviceStateChangedCallback callback, EDataFlow flow) {
     stateChangedCallback = callback;
 
-    notificationClient = wil::com_ptr<AudioDeviceNotificationClient>(new AudioDeviceNotificationClient(callback, deviceEnumerator, flow));
+    notificationClient = wil::com_ptr(new AudioDeviceNotificationClient(callback, deviceEnumerator, flow));
 
     if (FAILED(deviceEnumerator->RegisterEndpointNotificationCallback(notificationClient.get()))) {
         Logger::GetInstance().Log("Failed to register notification callback", LogLevel::Warning);

@@ -26,7 +26,10 @@ internal sealed class AudioStateService
         SubscribeToOutputService();
     }
 
-    public static void Initialize() => _ = Instance;
+    public static void Initialize()
+    {
+        _ = Instance;
+    }
 
     private void LoadFromFile()
     {
@@ -55,7 +58,7 @@ internal sealed class AudioStateService
         lock (SyncLock)
         {
             _saveTimer?.Dispose();
-            _saveTimer = new Timer(_ => SaveToFile(), null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+            _saveTimer = new Timer(_ => SaveToFile(), null, TimeSpan.FromSeconds(1), Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -78,7 +81,6 @@ internal sealed class AudioStateService
             .Subscribe(changeSet =>
             {
                 foreach (var change in changeSet)
-                {
                     switch (change.Reason)
                     {
                         case DynamicData.ListChangeReason.Add:
@@ -92,7 +94,6 @@ internal sealed class AudioStateService
                             // Устройство остаётся в списке, чтобы при возврате восстановить True
                             break;
                     }
-                }
             });
 
         // Подписываемся на уже имеющиеся
@@ -112,7 +113,6 @@ internal sealed class AudioStateService
             .Subscribe(changeSet =>
             {
                 foreach (var change in changeSet)
-                {
                     switch (change.Reason)
                     {
                         case DynamicData.ListChangeReason.Add:
@@ -126,7 +126,6 @@ internal sealed class AudioStateService
                             // Устройство остаётся в списке, чтобы при возврате восстановить True
                             break;
                     }
-                }
             });
 
         // Подписываемся на уже имеющиеся
@@ -140,10 +139,7 @@ internal sealed class AudioStateService
     private void ApplySavedStateForInputDevice(InputAudioDevice device)
     {
         var saved = _inMemoryCache.InputDevices.FirstOrDefault(d => d.Id == device.Id);
-        if (saved != null)
-        {
-            device.IsChecked = saved.IsChecked;
-        }
+        if (saved != null) device.IsChecked = saved.IsChecked;
     }
 
     private void SubscribeToIsChecked(InputAudioDevice device)
@@ -193,10 +189,7 @@ internal sealed class AudioStateService
         foreach (var session in device.AudioSessions)
         {
             var savedSession = saved.AudioSessions.FirstOrDefault(s => s.SessionId == session.SessionId);
-            if (savedSession != null)
-            {
-                session.IsChecked = savedSession.IsChecked;
-            }
+            if (savedSession != null) session.IsChecked = savedSession.IsChecked;
         }
     }
 
@@ -211,7 +204,7 @@ internal sealed class AudioStateService
             {
                 match = new OutputAudioDevice(new AudioDeviceInfo { Id = device.Id }, [])
                 {
-                    IsChecked = newValue 
+                    IsChecked = newValue
                 };
 
                 _inMemoryCache.OutputDevices.Add(match);
@@ -238,7 +231,6 @@ internal sealed class AudioStateService
             .Subscribe(changeSet =>
             {
                 foreach (var change in changeSet)
-                {
                     switch (change.Reason)
                     {
                         case DynamicData.ListChangeReason.Add:
@@ -252,7 +244,6 @@ internal sealed class AudioStateService
                             // Устройство остаётся в списке, чтобы при возврате восстановить True
                             break;
                     }
-                }
             });
 
         // Подписываемся на уже имеющиеся
@@ -269,10 +260,7 @@ internal sealed class AudioStateService
         if (savedDevice == null) return;
 
         var savedSession = savedDevice.AudioSessions.FirstOrDefault(s => s.SessionId == session.SessionId);
-        if (savedSession != null)
-        {
-            session.IsChecked = savedSession.IsChecked; 
-        }
+        if (savedSession != null) session.IsChecked = savedSession.IsChecked;
     }
 
     private void SubscribeToIsChecked(OutputAudioDevice device, AudioSession session)
@@ -352,7 +340,8 @@ internal sealed class AudioStateService
             if (!device.IsChecked && device.AudioSessions.All(s => !s.IsChecked))
                 continue;
 
-            var deviceState = new OutputAudioDevice(new OutputAudioDeviceInfo { DeviceInfo = new AudioDeviceInfo { Id = device.Id }})
+            var deviceState = new OutputAudioDevice(new OutputAudioDeviceInfo
+                { DeviceInfo = new AudioDeviceInfo { Id = device.Id } })
             {
                 IsChecked = device.IsChecked
             };
